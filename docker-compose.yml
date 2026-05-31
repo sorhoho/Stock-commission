@@ -18,146 +18,24 @@ x-service-defaults: &service-defaults
 services:
   # ─── Infrastructure ───────────────────────────────────────────────────────
 
-  postgres-inventory:
+  # Single shared PostgreSQL instance — all 9 service databases in one container.
+  # Reduces local RAM usage from ~700 MB (9 instances) to ~150 MB (1 instance).
+  # Each service still connects to its own named database; domain isolation is preserved.
+  postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: inventory
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports: ["5433:5432"]
+      POSTGRES_DB: postgres
+    ports: ["5432:5432"]
     volumes:
-      - pg-inventory:/var/lib/postgresql/data
+      - pg-data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks: [telco-net]
+    mem_limit: 512m
+    cpus: "0.5"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d inventory"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  postgres-party:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: party
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports: ["5434:5432"]
-    volumes:
-      - pg-party:/var/lib/postgresql/data
-    networks: [telco-net]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d party"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  postgres-sellout:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: sellout
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports: ["5435:5432"]
-    volumes:
-      - pg-sellout:/var/lib/postgresql/data
-    networks: [telco-net]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d sellout"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  postgres-sellin:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: sellin
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports: ["5436:5432"]
-    volumes:
-      - pg-sellin:/var/lib/postgresql/data
-    networks: [telco-net]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d sellin"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  postgres-performance:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: performance
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports: ["5437:5432"]
-    volumes:
-      - pg-performance:/var/lib/postgresql/data
-    networks: [telco-net]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d performance"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  postgres-commission-rules:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: commission_rules
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports: ["5438:5432"]
-    volumes:
-      - pg-commission-rules:/var/lib/postgresql/data
-    networks: [telco-net]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d commission_rules"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  postgres-commission-calc:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: commission_calc
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports: ["5439:5432"]
-    volumes:
-      - pg-commission-calc:/var/lib/postgresql/data
-    networks: [telco-net]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d commission_calc"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  postgres-payout:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: payout
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports: ["5440:5432"]
-    volumes:
-      - pg-payout:/var/lib/postgresql/data
-    networks: [telco-net]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d payout"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  postgres-audit:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: audit
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports: ["5441:5432"]
-    volumes:
-      - pg-audit:/var/lib/postgresql/data
-    networks: [telco-net]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d audit"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -234,10 +112,10 @@ services:
       dockerfile: services/inventory-service/Dockerfile
     ports: ["8001:8000"]
     environment:
-      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-inventory:5432/inventory"
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/inventory"
       SERVICE_NAME: "inventory-service"
     depends_on:
-      postgres-inventory:
+      postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -249,10 +127,10 @@ services:
       dockerfile: services/party-service/Dockerfile
     ports: ["8002:8000"]
     environment:
-      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-party:5432/party"
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/party"
       SERVICE_NAME: "party-service"
     depends_on:
-      postgres-party:
+      postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -264,10 +142,10 @@ services:
       dockerfile: services/sell-out-service/Dockerfile
     ports: ["8003:8000"]
     environment:
-      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-sellout:5432/sellout"
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/sellout"
       SERVICE_NAME: "sell-out-service"
     depends_on:
-      postgres-sellout:
+      postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -279,10 +157,10 @@ services:
       dockerfile: services/sell-in-service/Dockerfile
     ports: ["8004:8000"]
     environment:
-      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-sellin:5432/sellin"
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/sellin"
       SERVICE_NAME: "sell-in-service"
     depends_on:
-      postgres-sellin:
+      postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -308,10 +186,10 @@ services:
       dockerfile: services/performance-service/Dockerfile
     ports: ["8006:8000"]
     environment:
-      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-performance:5432/performance"
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/performance"
       SERVICE_NAME: "performance-service"
     depends_on:
-      postgres-performance:
+      postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -323,10 +201,10 @@ services:
       dockerfile: services/commission-rules-service/Dockerfile
     ports: ["8007:8000"]
     environment:
-      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-commission-rules:5432/commission_rules"
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/commission_rules"
       SERVICE_NAME: "commission-rules-service"
     depends_on:
-      postgres-commission-rules:
+      postgres:
         condition: service_healthy
 
   commission-calculation-service:
@@ -336,11 +214,11 @@ services:
       dockerfile: services/commission-calculation-service/Dockerfile
     ports: ["8008:8000"]
     environment:
-      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-commission-calc:5432/commission_calc"
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/commission_calc"
       COMMISSION_RULES_SERVICE_URL: "http://commission-rules-service:8000"
       SERVICE_NAME: "commission-calculation-service"
     depends_on:
-      postgres-commission-calc:
+      postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -354,10 +232,10 @@ services:
       dockerfile: services/payout-service/Dockerfile
     ports: ["8009:8000"]
     environment:
-      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-payout:5432/payout"
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/payout"
       SERVICE_NAME: "payout-service"
     depends_on:
-      postgres-payout:
+      postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -381,10 +259,10 @@ services:
       dockerfile: services/audit-service/Dockerfile
     ports: ["8011:8000"]
     environment:
-      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-audit:5432/audit"
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/audit"
       SERVICE_NAME: "audit-service"
     depends_on:
-      postgres-audit:
+      postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -435,12 +313,4 @@ networks:
     driver: bridge
 
 volumes:
-  pg-inventory:
-  pg-party:
-  pg-sellout:
-  pg-sellin:
-  pg-performance:
-  pg-commission-rules:
-  pg-commission-calc:
-  pg-payout:
-  pg-audit:
+  pg-data:

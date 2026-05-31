@@ -23,19 +23,19 @@
 
 ## Service Map
 
-| Service | Port | Database Port | TMForum Spec | Health Check |
-|---------|------|--------------|--------------|--------------|
-| inventory-service | 8001 | 5433 | TMF637 | `GET /health` |
-| party-service | 8002 | 5434 | TMF632 | `GET /health` |
-| sell-out-service | 8003 | 5435 | TMF699 | `GET /health` |
-| sell-in-service | 8004 | 5436 | TMF622 | `GET /health` |
+| Service | Port | Database | TMForum Spec | Health Check |
+|---------|------|----------|--------------|--------------|
+| inventory-service | 8001 | postgres:5432/inventory | TMF637 | `GET /health` |
+| party-service | 8002 | postgres:5432/party | TMF632 | `GET /health` |
+| sell-out-service | 8003 | postgres:5432/sellout | TMF699 | `GET /health` |
+| sell-in-service | 8004 | postgres:5432/sellin | TMF622 | `GET /health` |
 | stock-query-service | 8005 | Redis | TMF637 CQRS | `GET /health` |
-| performance-service | 8006 | 5437 | TMF628 | `GET /health` |
-| commission-rules-service | 8007 | 5438 | TMF651 | `GET /health` |
-| commission-calculation-service | 8008 | 5439 | TMF666 | `GET /health` |
-| payout-service | 8009 | 5440 | TMF666 | `GET /health` |
+| performance-service | 8006 | postgres:5432/performance | TMF628 | `GET /health` |
+| commission-rules-service | 8007 | postgres:5432/commission_rules | TMF651 | `GET /health` |
+| commission-calculation-service | 8008 | postgres:5432/commission_calc | TMF666 | `GET /health` |
+| payout-service | 8009 | postgres:5432/payout | TMF666 | `GET /health` |
 | notification-service | 8010 | — | Internal | `GET /health` |
-| audit-service | 8011 | 5441 | Internal | `GET /health` |
+| audit-service | 8011 | postgres:5432/audit | Internal | `GET /health` |
 
 ---
 
@@ -176,11 +176,12 @@ Symptom: Consumer lag growing indefinitely
 ### Database connection errors
 
 ```bash
-# Connect to a specific service's database
-docker compose exec postgres-sellout psql -U postgres -d sellout
+# Connect to a specific service's database (all databases on one container)
+docker compose exec postgres psql -U postgres -d sellout
 
-# Check active connections
-SELECT count(*), state FROM pg_stat_activity GROUP BY state;
+# Check active connections per database
+docker compose exec postgres psql -U postgres -c \
+  "SELECT datname, count(*), state FROM pg_stat_activity GROUP BY datname, state;"
 
 # Check connection pool exhaustion in service logs
 grep "TimeoutError\|pool" <(docker compose logs sell-out-service)
@@ -202,19 +203,33 @@ docker compose restart stock-query-service
 
 Each service owns its database exclusively. No service reads another service's database directly.
 
+All nine databases share a **single PostgreSQL container** in local dev (port 5432), which cuts RAM usage from ~700 MB (9 separate instances) to ~150 MB. Domain isolation is preserved — each service connects to its own named database.
+
 | Service | DB Name | Host | Port |
 |---------|---------|------|------|
-| inventory-service | `inventory` | localhost | 5433 |
-| party-service | `party` | localhost | 5434 |
-| sell-out-service | `sellout` | localhost | 5435 |
-| sell-in-service | `sellin` | localhost | 5436 |
-| performance-service | `performance` | localhost | 5437 |
-| commission-rules-service | `commission_rules` | localhost | 5438 |
-| commission-calculation-service | `commission_calc` | localhost | 5439 |
-| payout-service | `payout` | localhost | 5440 |
-| audit-service | `audit` | localhost | 5441 |
+| inventory-service | `inventory` | localhost | 5432 |
+| party-service | `party` | localhost | 5432 |
+| sell-out-service | `sellout` | localhost | 5432 |
+| sell-in-service | `sellin` | localhost | 5432 |
+| performance-service | `performance` | localhost | 5432 |
+| commission-rules-service | `commission_rules` | localhost | 5432 |
+| commission-calculation-service | `commission_calc` | localhost | 5432 |
+| payout-service | `payout` | localhost | 5432 |
+| audit-service | `audit` | localhost | 5432 |
 
 Credentials (dev only): user `postgres`, password `postgres`.
+
+```bash
+# Connect to a specific service's database
+docker compose exec postgres psql -U postgres -d sellout
+
+# List all databases
+docker compose exec postgres psql -U postgres -c "\l"
+
+# Check active connections per database
+docker compose exec postgres psql -U postgres -c \
+  "SELECT datname, count(*) FROM pg_stat_activity GROUP BY datname ORDER BY datname;"
+```
 
 ---
 
