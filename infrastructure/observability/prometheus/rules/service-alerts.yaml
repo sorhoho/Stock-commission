@@ -1,0 +1,82 @@
+groups:
+  - name: telco-service-alerts
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been unreachable for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: |
+          rate(http_requests_total{status=~"5.."}[5m]) /
+          rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.job }}"
+
+      - alert: HighLatencyP99
+        expr: |
+          histogram_quantile(0.99,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P99 latency on {{ $labels.job }}"
+          description: "P99 latency is {{ $value }}s on {{ $labels.job }}"
+
+  - name: commission-alerts
+    interval: 60s
+    rules:
+      - alert: CommissionCalculationFailures
+        expr: |
+          increase(commission_calculation_failures_total[10m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Commission calculation failures spike"
+          description: "{{ $value }} commission calculation failures in the last 10 minutes"
+
+      - alert: PayoutSLABreach
+        expr: |
+          (time() - payout_request_created_timestamp_seconds) > 86400
+          and payout_request_status == "PENDING"
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Payout request overdue (>24h)"
+          description: "Payout request has been in PENDING status for more than 24 hours"
+
+  - name: kafka-alerts
+    interval: 30s
+    rules:
+      - alert: KafkaConsumerLagHigh
+        expr: |
+          kafka_consumer_group_lag > 10000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag high for {{ $labels.group }}"
+          description: "Consumer group {{ $labels.group }} lag is {{ $value }} on topic {{ $labels.topic }}"
+
+      - alert: KafkaDLQNonEmpty
+        expr: |
+          kafka_topic_partition_current_offset{topic=~"telco.dlq.*"} > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Messages in DLQ topic {{ $labels.topic }}"
+          description: "{{ $value }} messages in DLQ. Check consumer logs."

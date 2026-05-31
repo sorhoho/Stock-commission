@@ -1,0 +1,73 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    env: local
+    system: telco-distribution
+
+rule_files:
+  - "rules/*.yaml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []  # Add AlertManager URL in production
+
+scrape_configs:
+  - job_name: inventory-service
+    static_configs:
+      - targets: ["inventory-service:8000"]
+    metrics_path: /metrics
+
+  - job_name: party-service
+    static_configs:
+      - targets: ["party-service:8000"]
+    metrics_path: /metrics
+
+  - job_name: sell-out-service
+    static_configs:
+      - targets: ["sell-out-service:8000"]
+    metrics_path: /metrics
+
+  - job_name: sell-in-service
+    static_configs:
+      - targets: ["sell-in-service:8000"]
+    metrics_path: /metrics
+
+  - job_name: stock-query-service
+    static_configs:
+      - targets: ["stock-query-service:8000"]
+    metrics_path: /metrics
+
+  - job_name: performance-service
+    static_configs:
+      - targets: ["performance-service:8000"]
+    metrics_path: /metrics
+
+  - job_name: commission-rules-service
+    static_configs:
+      - targets: ["commission-rules-service:8000"]
+    metrics_path: /metrics
+
+  - job_name: commission-calculation-service
+    static_configs:
+      - targets: ["commission-calculation-service:8000"]
+    metrics_path: /metrics
+
+  - job_name: payout-service
+    static_configs:
+      - targets: ["payout-service:8000"]
+    metrics_path: /metrics
+
+  - job_name: audit-service
+    static_configs:
+      - targets: ["audit-service:8000"]
+    metrics_path: /metrics
+
+  - job_name: kafka
+    static_configs:
+      - targets: ["kafka:9092"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

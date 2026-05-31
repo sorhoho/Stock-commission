@@ -1,0 +1,114 @@
+version: "3.9"
+
+# Infrastructure-only stack for local development
+# Run: docker-compose -f docker-compose.infra.yml up -d
+
+services:
+  postgres-inventory:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: inventory
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5433:5432"]
+    networks: [telco-net]
+
+  postgres-party:
+    image: postgres:16-alpine
+    environment: {POSTGRES_DB: party, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres}
+    ports: ["5434:5432"]
+    networks: [telco-net]
+
+  postgres-sellout:
+    image: postgres:16-alpine
+    environment: {POSTGRES_DB: sellout, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres}
+    ports: ["5435:5432"]
+    networks: [telco-net]
+
+  postgres-sellin:
+    image: postgres:16-alpine
+    environment: {POSTGRES_DB: sellin, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres}
+    ports: ["5436:5432"]
+    networks: [telco-net]
+
+  postgres-performance:
+    image: postgres:16-alpine
+    environment: {POSTGRES_DB: performance, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres}
+    ports: ["5437:5432"]
+    networks: [telco-net]
+
+  postgres-commission-rules:
+    image: postgres:16-alpine
+    environment: {POSTGRES_DB: commission_rules, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres}
+    ports: ["5438:5432"]
+    networks: [telco-net]
+
+  postgres-commission-calc:
+    image: postgres:16-alpine
+    environment: {POSTGRES_DB: commission_calc, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres}
+    ports: ["5439:5432"]
+    networks: [telco-net]
+
+  postgres-payout:
+    image: postgres:16-alpine
+    environment: {POSTGRES_DB: payout, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres}
+    ports: ["5440:5432"]
+    networks: [telco-net]
+
+  postgres-audit:
+    image: postgres:16-alpine
+    environment: {POSTGRES_DB: audit, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres}
+    ports: ["5441:5432"]
+    networks: [telco-net]
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks: [telco-net]
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on: [zookeeper]
+    ports: ["9092:9092", "9093:9093"]
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: "INTERNAL://kafka:9092,EXTERNAL://localhost:9093"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks: [telco-net]
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    ports: ["8090:8080"]
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on: [kafka]
+    networks: [telco-net]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks: [telco-net]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    command: start-dev --import-realm
+    environment:
+      KC_DB: dev-mem
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    ports: ["8080:8080"]
+    volumes:
+      - ./infrastructure/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
+    networks: [telco-net]
+
+networks:
+  telco-net:
+    driver: bridge

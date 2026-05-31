@@ -1,0 +1,446 @@
+version: "3.9"
+
+# Full local development stack — all services + infrastructure
+# For infra-only: use docker-compose.infra.yml
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  networks:
+    - telco-net
+  environment:
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+    REDIS_URL: "redis://redis:6379/0"
+    KEYCLOAK_JWKS_URI: "http://keycloak:8080/realms/telco/protocol/openid-connect/certs"
+    KEYCLOAK_AUDIENCE: "telco-services"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://tempo:4317"
+    LOG_LEVEL: "INFO"
+
+services:
+  # ─── Infrastructure ───────────────────────────────────────────────────────
+
+  postgres-inventory:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: inventory
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5433:5432"]
+    volumes:
+      - pg-inventory:/var/lib/postgresql/data
+    networks: [telco-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inventory"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-party:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: party
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5434:5432"]
+    volumes:
+      - pg-party:/var/lib/postgresql/data
+    networks: [telco-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d party"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-sellout:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sellout
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5435:5432"]
+    volumes:
+      - pg-sellout:/var/lib/postgresql/data
+    networks: [telco-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sellout"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-sellin:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sellin
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5436:5432"]
+    volumes:
+      - pg-sellin:/var/lib/postgresql/data
+    networks: [telco-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sellin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-performance:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: performance
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5437:5432"]
+    volumes:
+      - pg-performance:/var/lib/postgresql/data
+    networks: [telco-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d performance"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-commission-rules:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: commission_rules
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5438:5432"]
+    volumes:
+      - pg-commission-rules:/var/lib/postgresql/data
+    networks: [telco-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d commission_rules"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-commission-calc:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: commission_calc
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5439:5432"]
+    volumes:
+      - pg-commission-calc:/var/lib/postgresql/data
+    networks: [telco-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d commission_calc"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-payout:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: payout
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5440:5432"]
+    volumes:
+      - pg-payout:/var/lib/postgresql/data
+    networks: [telco-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d payout"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-audit:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: audit
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5441:5432"]
+    volumes:
+      - pg-audit:/var/lib/postgresql/data
+    networks: [telco-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d audit"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks: [telco-net]
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports: ["9092:9092", "9093:9093"]
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: "INTERNAL://kafka:9092,EXTERNAL://localhost:9093"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+    networks: [telco-net]
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks: [telco-net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    command: start-dev --import-realm
+    environment:
+      KC_DB: dev-mem
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_FEATURES: token-exchange
+    ports: ["8080:8080"]
+    volumes:
+      - ./infrastructure/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
+    networks: [telco-net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  # ─── Services ──────────────────────────────────────────────────────────────
+
+  inventory-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: services/inventory-service/Dockerfile
+    ports: ["8001:8000"]
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-inventory:5432/inventory"
+      SERVICE_NAME: "inventory-service"
+    depends_on:
+      postgres-inventory:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  party-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: services/party-service/Dockerfile
+    ports: ["8002:8000"]
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-party:5432/party"
+      SERVICE_NAME: "party-service"
+    depends_on:
+      postgres-party:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  sell-out-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: services/sell-out-service/Dockerfile
+    ports: ["8003:8000"]
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-sellout:5432/sellout"
+      SERVICE_NAME: "sell-out-service"
+    depends_on:
+      postgres-sellout:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  sell-in-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: services/sell-in-service/Dockerfile
+    ports: ["8004:8000"]
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-sellin:5432/sellin"
+      SERVICE_NAME: "sell-in-service"
+    depends_on:
+      postgres-sellin:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  stock-query-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: services/stock-query-service/Dockerfile
+    ports: ["8005:8000"]
+    environment:
+      SERVICE_NAME: "stock-query-service"
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  performance-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: services/performance-service/Dockerfile
+    ports: ["8006:8000"]
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-performance:5432/performance"
+      SERVICE_NAME: "performance-service"
+    depends_on:
+      postgres-performance:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  commission-rules-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: services/commission-rules-service/Dockerfile
+    ports: ["8007:8000"]
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-commission-rules:5432/commission_rules"
+      SERVICE_NAME: "commission-rules-service"
+    depends_on:
+      postgres-commission-rules:
+        condition: service_healthy
+
+  commission-calculation-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: services/commission-calculation-service/Dockerfile
+    ports: ["8008:8000"]
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-commission-calc:5432/commission_calc"
+      COMMISSION_RULES_SERVICE_URL: "http://commission-rules-service:8000"
+      SERVICE_NAME: "commission-calculation-service"
+    depends_on:
+      postgres-commission-calc:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      commission-rules-service:
+        condition: service_started
+
+  payout-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: services/payout-service/Dockerfile
+    ports: ["8009:8000"]
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-payout:5432/payout"
+      SERVICE_NAME: "payout-service"
+    depends_on:
+      postgres-payout:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  notification-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    ports: ["8010:8000"]
+    environment:
+      SERVICE_NAME: "notification-service"
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  audit-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: services/audit-service/Dockerfile
+    ports: ["8011:8000"]
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-audit:5432/audit"
+      SERVICE_NAME: "audit-service"
+    depends_on:
+      postgres-audit:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  frontend:
+    <<: *service-defaults
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports: ["3000:80"]
+    depends_on:
+      - sell-out-service
+      - commission-calculation-service
+
+  # ─── Observability ─────────────────────────────────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    volumes:
+      - ./infrastructure/observability/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
+    ports: ["9090:9090"]
+    networks: [telco-net]
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    ports: ["3001:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./infrastructure/observability/grafana/dashboards:/var/lib/grafana/dashboards
+    networks: [telco-net]
+
+  loki:
+    image: grafana/loki:3.0.0
+    ports: ["3100:3100"]
+    networks: [telco-net]
+
+  tempo:
+    image: grafana/tempo:2.5.0
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./infrastructure/observability/tempo.yaml:/etc/tempo.yaml
+    ports: ["3200:3200", "4317:4317"]
+    networks: [telco-net]
+
+networks:
+  telco-net:
+    driver: bridge
+
+volumes:
+  pg-inventory:
+  pg-party:
+  pg-sellout:
+  pg-sellin:
+  pg-performance:
+  pg-commission-rules:
+  pg-commission-calc:
+  pg-payout:
+  pg-audit:

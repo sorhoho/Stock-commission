@@ -1,0 +1,114 @@
+{
+  "realm": "telco",
+  "displayName": "Telco Distribution & Commission",
+  "enabled": true,
+  "registrationAllowed": false,
+  "loginTheme": "keycloak",
+  "accessTokenLifespan": 300,
+  "refreshTokenMaxReuse": 0,
+  "clients": [
+    {
+      "clientId": "telco-services",
+      "name": "Telco Backend Services (M2M)",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "telco-services-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["openid", "profile", "email"],
+      "optionalClientScopes": []
+    },
+    {
+      "clientId": "telco-frontend",
+      "name": "Telco Frontend",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://localhost:3000/*", "http://frontend:80/*"],
+      "webOrigins": ["http://localhost:3000", "http://frontend"],
+      "protocol": "openid-connect"
+    }
+  ],
+  "clientScopes": [
+    {"name": "inventory:read",  "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
+    {"name": "inventory:write", "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
+    {"name": "sell_out:create", "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
+    {"name": "sell_out:read",   "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
+    {"name": "commission_rules:read",  "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
+    {"name": "commission_rules:write", "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
+    {"name": "commission_statement:read",    "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
+    {"name": "commission_statement:confirm", "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
+    {"name": "payout:create",  "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
+    {"name": "payout:admin",   "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
+    {"name": "party:read",     "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
+    {"name": "party:write",    "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
+    {"name": "admin",          "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
+    {"name": "audit:read",     "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}}
+  ],
+  "roles": {
+    "realm": [
+      {"name": "admin",           "description": "System administrator"},
+      {"name": "distributor",     "description": "Distributor / supplier"},
+      {"name": "dealer",          "description": "Dealer / channel partner"},
+      {"name": "sales_employee",  "description": "Sales team member"},
+      {"name": "finance_manager", "description": "Finance and commission approver"},
+      {"name": "analyst",         "description": "Read-only reporting access"}
+    ]
+  },
+  "users": [
+    {
+      "username": "admin@telco.local",
+      "email": "admin@telco.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "System",
+      "lastName": "Admin",
+      "credentials": [{"type": "password", "value": "admin123", "temporary": false}],
+      "realmRoles": ["admin"],
+      "attributes": {"tenant_id": ["tenant-demo"]}
+    },
+    {
+      "username": "dealer1@telco.local",
+      "email": "dealer1@telco.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "Dealer",
+      "credentials": [{"type": "password", "value": "dealer123", "temporary": false}],
+      "realmRoles": ["dealer"],
+      "attributes": {
+        "tenant_id": ["tenant-demo"],
+        "party_id": ["00000000-0000-0000-0000-000000000001"]
+      }
+    },
+    {
+      "username": "finance@telco.local",
+      "email": "finance@telco.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Finance",
+      "lastName": "Manager",
+      "credentials": [{"type": "password", "value": "finance123", "temporary": false}],
+      "realmRoles": ["finance_manager"],
+      "attributes": {"tenant_id": ["tenant-demo"]}
+    }
+  ],
+  "protocolMappers": [
+    {
+      "name": "tenant-id-mapper",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usermodel-attribute-mapper",
+      "config": {
+        "user.attribute": "tenant_id",
+        "claim.name": "tenant_id",
+        "jsonType.label": "String",
+        "id.token.claim": "true",
+        "access.token.claim": "true"
+      }
+    }
+  ]
+}

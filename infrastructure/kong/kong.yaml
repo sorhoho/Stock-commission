@@ -1,0 +1,181 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: inventory-service
+    url: http://inventory-service:8000
+    routes:
+      - name: inventory-routes
+        paths: ["/api/v1/inventory"]
+        strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          claims_to_verify: [exp]
+          key_claim_name: kid
+      - name: rate-limiting
+        config:
+          minute: 300
+          policy: redis
+          redis_host: redis
+          redis_port: 6379
+      - name: request-id
+        config:
+          header_name: X-Correlation-ID
+          echo_downstream: true
+      - name: response-transformer
+        config:
+          add:
+            headers:
+              - "X-Service-Name:inventory-service"
+
+  - name: party-service
+    url: http://party-service:8000
+    routes:
+      - name: party-routes
+        paths: ["/api/v1/party"]
+        strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          claims_to_verify: [exp]
+      - name: rate-limiting
+        config:
+          minute: 200
+          policy: redis
+          redis_host: redis
+
+  - name: sell-out-service
+    url: http://sell-out-service:8000
+    routes:
+      - name: sales-management-routes
+        paths: ["/api/v1/salesManagement"]
+        strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          claims_to_verify: [exp]
+      - name: rate-limiting
+        config:
+          minute: 500
+          policy: redis
+          redis_host: redis
+
+  - name: sell-in-service
+    url: http://sell-in-service:8000
+    routes:
+      - name: product-ordering-routes
+        paths: ["/api/v1/productOrdering"]
+        strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          claims_to_verify: [exp]
+      - name: rate-limiting
+        config:
+          minute: 200
+          policy: redis
+          redis_host: redis
+
+  - name: stock-query-service
+    url: http://stock-query-service:8000
+    routes:
+      - name: stock-availability-routes
+        paths: ["/api/v1/stockAvailability"]
+        strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          claims_to_verify: [exp]
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: redis
+          redis_host: redis
+
+  - name: performance-service
+    url: http://performance-service:8000
+    routes:
+      - name: performance-management-routes
+        paths: ["/api/v1/performanceManagement"]
+        strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          claims_to_verify: [exp]
+      - name: rate-limiting
+        config:
+          minute: 300
+          policy: redis
+          redis_host: redis
+
+  - name: commission-rules-service
+    url: http://commission-rules-service:8000
+    routes:
+      - name: agreement-management-routes
+        paths: ["/api/v1/agreementManagement"]
+        strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          claims_to_verify: [exp]
+      - name: rate-limiting
+        config:
+          minute: 200
+          policy: redis
+          redis_host: redis
+
+  - name: commission-calculation-service
+    url: http://commission-calculation-service:8000
+    routes:
+      - name: account-management-routes
+        paths: ["/api/v1/accountManagement"]
+        strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          claims_to_verify: [exp]
+      - name: rate-limiting
+        config:
+          minute: 300
+          policy: redis
+          redis_host: redis
+
+  - name: payout-service
+    url: http://payout-service:8000
+    routes:
+      - name: payout-routes
+        paths: ["/api/v1/payout"]
+        strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          claims_to_verify: [exp]
+      - name: rate-limiting
+        config:
+          minute: 100
+          policy: redis
+          redis_host: redis
+
+  - name: audit-service
+    url: http://audit-service:8000
+    routes:
+      - name: audit-routes
+        paths: ["/api/v1/audit"]
+        strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          claims_to_verify: [exp]
+      - name: rate-limiting
+        config:
+          minute: 100
+          policy: redis
+          redis_host: redis
+
+plugins:
+  - name: correlation-id
+    config:
+      header_name: X-Correlation-ID
+      generator: uuid#counter
+      echo_downstream: true

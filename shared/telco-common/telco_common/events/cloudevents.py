@@ -53,6 +53,7 @@ class Topics:
     INVENTORY_STOCK_RESERVED = "telco.inventory.stock.reserved"
 
     SALES_SELLOUT_COMPLETED = "telco.sales.sellout.completed"
+    SALES_SELLOUT_REVERSED = "telco.sales.sellout.reversed"
     SALES_SELLIN_ORDERED = "telco.sales.sellin.ordered"
     SALES_SELLIN_DELIVERED = "telco.sales.sellin.delivered"
 

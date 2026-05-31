@@ -37,6 +37,15 @@ class SellInOrderedData(BaseModel):
     tenant_id: str
 
 
+class SellOutReversedData(BaseModel):
+    transaction_id: str
+    transaction_number: str
+    dealer_party_id: str
+    reversal_reason: str
+    reversed_at: str
+    tenant_id: str
+
+
 class SellInDeliveredData(BaseModel):
     order_id: str
     order_number: str
