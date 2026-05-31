@@ -1,55 +1,43 @@
 # ── Stage 1: builder ──────────────────────────────────────────────────────────
-FROM python:3.12-slim AS builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# Install build dependencies
+ENV PIP_TRUSTED_HOST="pypi.org files.pythonhosted.org pypi.python.org" \
+    PIP_NO_CACHE_DIR=1
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy shared library first (enables layer caching)
-COPY shared/telco-common /build/shared/telco-common
+# Install telco-common from the EXACT path the pyproject.toml file:// URL references
+RUN mkdir -p /app/shared
+COPY shared/telco-common /app/shared/telco-common
+RUN pip install --prefix=/install /app/shared/telco-common
 
-# Install the shared library into a prefix we can copy
-RUN pip install --prefix=/install --no-cache-dir /build/shared/telco-common
-
-# Copy service source
+# Copy and install service
 COPY services/inventory-service /build/service
-
-# Install service dependencies (telco-common installed from local path)
-RUN pip install --prefix=/install --no-cache-dir \
-    --find-links /install/lib/python3.12/site-packages \
+RUN pip install --prefix=/install \
+    --find-links /install/lib/python3.11/site-packages \
     /build/service
 
 
-# ── Stage 2: runtime ─────────────────────────────────────────────────────────
-FROM python:3.12-slim AS runtime
+# ── Stage 2: runtime ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS runtime
 
-LABEL maintainer="platform-engineering@telco.com"
-LABEL service="inventory-service"
-LABEL spec="TMF637"
-
-# Non-root user
 RUN groupadd --gid 1000 appgroup && \
     useradd --uid 1000 --gid appgroup --no-create-home --shell /bin/false appuser
 
 WORKDIR /app
 
-# Copy installed packages from builder
 COPY --from=builder /install /usr/local
-
-# Copy service source
 COPY --from=builder /build/service /app
-
-# Copy shared library source for the file:// reference
-COPY --from=builder /build/shared/telco-common /app/shared/telco-common
+COPY --from=builder /app/shared/telco-common /app/shared/telco-common
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app
 
-# Expose service port
 EXPOSE 8000
 
 USER appuser

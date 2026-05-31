@@ -1,27 +1,45 @@
-FROM python:3.12-slim
+# ── Stage 1: builder ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+ENV PIP_TRUSTED_HOST="pypi.org files.pythonhosted.org pypi.python.org" \
+    PIP_NO_CACHE_DIR=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install telco-common from the EXACT path the pyproject.toml file:// URL references
+RUN mkdir -p /app/shared
+COPY shared/telco-common /app/shared/telco-common
+RUN pip install --prefix=/install /app/shared/telco-common
+
+# Copy and install service
+COPY services/performance-service /build/service
+RUN pip install --prefix=/install \
+    --find-links /install/lib/python3.11/site-packages \
+    /build/service
+
+
+# ── Stage 2: runtime ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS runtime
+
+RUN groupadd --gid 1000 appgroup && \
+    useradd --uid 1000 --gid appgroup --no-create-home --shell /bin/false appuser
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /install /usr/local
+COPY --from=builder /build/service /app
+COPY --from=builder /app/shared/telco-common /app/shared/telco-common
 
-# Copy shared library first (referenced as file:// dep)
-COPY shared/telco-common /app/shared/telco-common
-
-# Copy service source
-COPY services/performance-service/pyproject.toml /app/pyproject.toml
-COPY services/performance-service/app /app/app
-
-# Install dependencies
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir .
-
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
 EXPOSE 8000
+
+USER appuser
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

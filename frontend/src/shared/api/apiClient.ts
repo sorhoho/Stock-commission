@@ -1,5 +1,5 @@
 import axios from "axios";
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { RootState } from "../../app/store";
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";

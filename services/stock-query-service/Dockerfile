@@ -1,33 +1,45 @@
-FROM python:3.12-slim AS base
+# ── Stage 1: builder ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+ENV PIP_TRUSTED_HOST="pypi.org files.pythonhosted.org pypi.python.org" \
+    PIP_NO_CACHE_DIR=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install telco-common from the EXACT path the pyproject.toml file:// URL references
+RUN mkdir -p /app/shared
+COPY shared/telco-common /app/shared/telco-common
+RUN pip install --prefix=/install /app/shared/telco-common
+
+# Copy and install service
+COPY services/stock-query-service /build/service
+RUN pip install --prefix=/install \
+    --find-links /install/lib/python3.11/site-packages \
+    /build/service
+
+
+# ── Stage 2: runtime ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS runtime
+
+RUN groupadd --gid 1000 appgroup && \
+    useradd --uid 1000 --gid appgroup --no-create-home --shell /bin/false appuser
 
 WORKDIR /app
 
-# Install system dependencies for hiredis
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /install /usr/local
+COPY --from=builder /build/service /app
+COPY --from=builder /app/shared/telco-common /app/shared/telco-common
 
-# Copy shared library first for layer caching
-COPY shared/telco-common /app/shared/telco-common
-
-# Copy service source
-COPY services/stock-query-service/pyproject.toml /app/services/stock-query-service/pyproject.toml
-
-# Install dependencies
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir /app/services/stock-query-service/[standard] 2>/dev/null || true \
-    && pip install --no-cache-dir "fastapi>=0.111" "uvicorn[standard]>=0.30" \
-       "pydantic>=2.7" "pydantic-settings>=2.3" "aiokafka>=0.10" \
-       "redis[hiredis]>=5.0" "structlog>=24.2" \
-       "prometheus-fastapi-instrumentator>=7.0" \
-       "opentelemetry-api>=1.24" "opentelemetry-sdk>=1.24" \
-       "opentelemetry-instrumentation-fastapi>=0.45b0" \
-       "tenacity>=8.3" \
-    && pip install --no-cache-dir /app/shared/telco-common
-
-# Copy application source
-COPY services/stock-query-service/app /app/app
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
 EXPOSE 8000
+
+USER appuser
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

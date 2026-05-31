@@ -1,49 +1,45 @@
-# ─── Stage 1: build dependencies ────────────────────────────────────────────
-FROM python:3.12-slim AS builder
+# ── Stage 1: builder ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# Install build tools
+ENV PIP_TRUSTED_HOST="pypi.org files.pythonhosted.org pypi.python.org" \
+    PIP_NO_CACHE_DIR=1
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential \
-        git \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy shared library first (referenced as a local path dep)
-COPY shared/telco-common /build/shared/telco-common
+# Install telco-common from the EXACT path the pyproject.toml file:// URL references
+RUN mkdir -p /app/shared
+COPY shared/telco-common /app/shared/telco-common
+RUN pip install --prefix=/install /app/shared/telco-common
 
-# Copy service source
-COPY services/sell-out-service /build/services/sell-out-service
-
-# Install into a prefix we can copy
-RUN pip install --upgrade pip \
- && pip install --prefix=/install \
-        /build/shared/telco-common \
-        /build/services/sell-out-service
+# Copy and install service
+COPY services/sell-out-service /build/service
+RUN pip install --prefix=/install \
+    --find-links /install/lib/python3.11/site-packages \
+    /build/service
 
 
-# ─── Stage 2: runtime image ──────────────────────────────────────────────────
-FROM python:3.12-slim AS runtime
+# ── Stage 2: runtime ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS runtime
 
-# Non-root user
-RUN addgroup --system --gid 1000 appgroup \
- && adduser  --system --uid 1000 --ingroup appgroup appuser
+RUN groupadd --gid 1000 appgroup && \
+    useradd --uid 1000 --gid appgroup --no-create-home --shell /bin/false appuser
 
 WORKDIR /app
 
-# Copy installed packages from builder
 COPY --from=builder /install /usr/local
+COPY --from=builder /build/service /app
+COPY --from=builder /app/shared/telco-common /app/shared/telco-common
 
-# Copy shared library source (editable-install path used at runtime)
-COPY --chown=appuser:appgroup shared/telco-common /app/shared/telco-common
-
-# Copy application source
-COPY --chown=appuser:appgroup services/sell-out-service /app/services/sell-out-service
-
-WORKDIR /app/services/sell-out-service
-
-USER 1000
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+USER appuser
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
