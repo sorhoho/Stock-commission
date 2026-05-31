@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Query, status
 
-from app.dependencies import DbSession, TenantId, get_db, get_current_tenant_id
+from app.dependencies import DbSession, TenantId
 from app.domain.models import Location, LocationCreate, LocationType, LocationUpdate
 from app.infrastructure.db.repository import LocationRepository
 from telco_common.exceptions import NotFoundException
@@ -18,9 +16,10 @@ router = APIRouter(prefix="/location", tags=["Location"])
 
 @router.get("/", response_model=list[Location])
 async def list_locations(
+    *,
     type: LocationType | None = Query(default=None, description="Filter by location type"),
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    db: DbSession = Depends(get_db),
+    tenant_id: TenantId,
+    db: DbSession,
 ) -> list[Location]:
     """List all locations for the current tenant."""
     repo = LocationRepository(db)
@@ -31,8 +30,8 @@ async def list_locations(
 @router.post("/", response_model=Location, status_code=status.HTTP_201_CREATED)
 async def create_location(
     body: LocationCreate,
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    db: DbSession = Depends(get_db),
+    tenant_id: TenantId,
+    db: DbSession,
 ) -> Location:
     """Create a new location."""
     repo = LocationRepository(db)
@@ -43,8 +42,8 @@ async def create_location(
 @router.get("/{location_id}", response_model=Location)
 async def get_location(
     location_id: uuid.UUID,
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    db: DbSession = Depends(get_db),
+    tenant_id: TenantId,
+    db: DbSession,
 ) -> Location:
     """Get a location by ID."""
     repo = LocationRepository(db)
@@ -58,8 +57,8 @@ async def get_location(
 async def update_location(
     location_id: uuid.UUID,
     body: LocationUpdate,
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    db: DbSession = Depends(get_db),
+    tenant_id: TenantId,
+    db: DbSession,
 ) -> Location:
     """Partially update a location."""
     repo = LocationRepository(db)

@@ -4,17 +4,13 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Query, status
 
 from app.dependencies import (
     CorrelationId,
     DbSession,
     KafkaProducerDep,
     TenantId,
-    get_correlation_id,
-    get_current_tenant_id,
-    get_db,
-    get_kafka_producer,
 )
 from app.domain.models import Party, PartyCreate, PartyRole, PartyStatus, PartyUpdate
 from app.domain import services
@@ -26,13 +22,14 @@ router = APIRouter(prefix="/party", tags=["Party"])
 
 @router.get("/", response_model=list[Party])
 async def list_parties(
+    *,
     role: PartyRole | None = Query(default=None, description="Filter by role"),
     status: PartyStatus | None = Query(default=None, description="Filter by status"),
     parent_party_id: uuid.UUID | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     size: int = Query(default=20, ge=1, le=100),
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    db: DbSession = Depends(get_db),
+    tenant_id: TenantId,
+    db: DbSession,
 ) -> list[Party]:
     """List parties with optional filters."""
     repo = PartyRepository(db)
@@ -50,12 +47,13 @@ async def list_parties(
 @router.post("/", response_model=Party, status_code=status.HTTP_201_CREATED)
 async def create_party(
     body: PartyCreate,
+    *,
     region: str | None = Query(default=None, description="Dealer region (published in event)"),
     tier: str | None = Query(default=None, description="Dealer tier (published in event)"),
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    correlation_id: CorrelationId = Depends(get_correlation_id),
-    db: DbSession = Depends(get_db),
-    kafka_producer: KafkaProducerDep = Depends(get_kafka_producer),
+    tenant_id: TenantId,
+    correlation_id: CorrelationId,
+    db: DbSession,
+    kafka_producer: KafkaProducerDep,
 ) -> Party:
     """Create (onboard) a new party.
 
@@ -77,8 +75,8 @@ async def create_party(
 @router.get("/{party_id}", response_model=Party)
 async def get_party(
     party_id: uuid.UUID,
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    db: DbSession = Depends(get_db),
+    tenant_id: TenantId,
+    db: DbSession,
 ) -> Party:
     """Get a party by ID."""
     repo = PartyRepository(db)
@@ -91,8 +89,8 @@ async def get_party(
 @router.get("/{party_id}/hierarchy", response_model=list[Party])
 async def get_party_hierarchy(
     party_id: uuid.UUID,
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    db: DbSession = Depends(get_db),
+    tenant_id: TenantId,
+    db: DbSession,
 ) -> list[Party]:
     """Return the party hierarchy from root to the specified party (root-first)."""
     repo = PartyRepository(db)
@@ -108,8 +106,8 @@ async def get_party_hierarchy(
 async def update_party(
     party_id: uuid.UUID,
     body: PartyUpdate,
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    db: DbSession = Depends(get_db),
+    tenant_id: TenantId,
+    db: DbSession,
 ) -> Party:
     """Partially update a party."""
     repo = PartyRepository(db)
@@ -122,8 +120,8 @@ async def update_party(
 @router.delete("/{party_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_party(
     party_id: uuid.UUID,
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    db: DbSession = Depends(get_db),
+    tenant_id: TenantId,
+    db: DbSession,
 ) -> None:
     """Soft-delete a party (sets status to TERMINATED)."""
     repo = PartyRepository(db)

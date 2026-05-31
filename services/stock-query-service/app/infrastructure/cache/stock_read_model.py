@@ -40,6 +40,15 @@ class StockReadModel:
     # Internal helpers
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _decode_hash(raw: dict) -> dict[str, str]:
+        """Decode bytes keys/values that fakeredis returns even with decode_responses=True."""
+        return {
+            (k.decode() if isinstance(k, bytes) else str(k)):
+            (v.decode() if isinstance(v, bytes) else str(v))
+            for k, v in raw.items()
+        }
+
     def _key(self, tenant_id: str, product_id: str, location_id: str) -> str:
         return f"stock:{tenant_id}:{product_id}:{location_id}"
 
@@ -70,7 +79,7 @@ class StockReadModel:
         key = self._key(data.tenant_id, data.product_id, data.location_id)
 
         # Preserve existing product_name / location_type if already set
-        existing: dict[str, str] = await self._redis.hgetall(key)
+        existing: dict[str, str] = self._decode_hash(await self._redis.hgetall(key))
         product_name = existing.get("product_name", "unknown")
         location_type = existing.get("location_type", "unknown")
         reserved = int(existing.get("reserved_quantity", "0"))
@@ -107,7 +116,7 @@ class StockReadModel:
 
         # --- Decrement source ---
         src_key = self._key(data.tenant_id, data.product_id, data.source_location_id)
-        src: dict[str, str] = await self._redis.hgetall(src_key)
+        src: dict[str, str] = self._decode_hash(await self._redis.hgetall(src_key))
         if src:
             src_qty = max(0, int(src.get("available_quantity", "0")) - data.quantity)
             await self._redis.hset(  # type: ignore[arg-type]
@@ -125,7 +134,7 @@ class StockReadModel:
 
         # --- Increment destination ---
         dst_key = self._key(data.tenant_id, data.product_id, data.destination_location_id)
-        dst: dict[str, str] = await self._redis.hgetall(dst_key)
+        dst: dict[str, str] = self._decode_hash(await self._redis.hgetall(dst_key))
         if dst:
             dst_qty = int(dst.get("available_quantity", "0")) + data.quantity
             await self._redis.hset(  # type: ignore[arg-type]
@@ -178,8 +187,8 @@ class StockReadModel:
         while True:
             cursor, keys = await self._redis.scan(cursor, match=pattern, count=100)
             for key in keys:
-                # key is already a str because decode_responses=True
-                entry: dict[str, str] = await self._redis.hgetall(key)
+                key = key.decode() if isinstance(key, bytes) else key
+                entry: dict[str, str] = self._decode_hash(await self._redis.hgetall(key))
                 if not entry:
                     continue
 
@@ -221,7 +230,7 @@ class StockReadModel:
     ) -> dict[str, Any] | None:
         """Fetch a single stock availability entry by exact key."""
         key = self._key(tenant_id, product_id, location_id)
-        entry: dict[str, str] = await self._redis.hgetall(key)
+        entry: dict[str, str] = self._decode_hash(await self._redis.hgetall(key))
         if not entry:
             return None
 

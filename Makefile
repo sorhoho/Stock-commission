@@ -17,13 +17,13 @@ help: ## Show this help
 # ─── Local infra ──────────────────────────────────────────────────────────────
 
 infra-up: ## Start infrastructure only (Kafka, PG, Redis, Keycloak)
-	docker-compose -f docker-compose.infra.yml up -d
+	docker compose -f docker-compose.infra.yml up -d
 	@echo "$(BOLD)Waiting for Kafka to be ready...$(RESET)"
 	@sleep 15
 	$(MAKE) topics
 
 infra-down: ## Stop infrastructure
-	docker-compose -f docker-compose.infra.yml down
+	docker compose -f docker-compose.infra.yml down
 
 topics: ## Create Kafka topics
 	bash scripts/kafka/create-topics.sh
@@ -31,19 +31,19 @@ topics: ## Create Kafka topics
 # ─── Full stack ───────────────────────────────────────────────────────────────
 
 up: ## Start full stack (infra + all services + frontend)
-	docker-compose up -d --build
+	docker compose up -d --build
 
 down: ## Stop full stack
-	docker-compose down -v
+	docker compose down -v
 
 build: ## Build all service Docker images
-	docker-compose build
+	docker compose build
 
 logs: ## Tail logs for all services
-	docker-compose logs -f --tail=100
+	docker compose logs -f --tail=100
 
 logs-%: ## Tail logs for a specific service: make logs-sell-out-service
-	docker-compose logs -f --tail=100 $*
+	docker compose logs -f --tail=100 $*
 
 # ─── Database migrations ──────────────────────────────────────────────────────
 
@@ -52,18 +52,18 @@ migrate: ## Run Alembic migrations for all services
 	            performance-service commission-rules-service commission-calculation-service \
 	            payout-service audit-service; do \
 		echo "$(BOLD)Migrating $$svc...$(RESET)"; \
-		docker-compose run --rm $$svc alembic upgrade head; \
+		docker compose run --rm $$svc alembic upgrade head; \
 	done
 
 migrate-%: ## Run migrations for a specific service: make migrate-inventory-service
-	docker-compose run --rm $* alembic upgrade head
+	docker compose run --rm $* alembic upgrade head
 
 # ─── Seed data ────────────────────────────────────────────────────────────────
 
 seed: ## Seed development data (tenants, parties, commission rules)
-	docker-compose run --rm party-service python /app/scripts/seed-data/seed_tenants.py
-	docker-compose run --rm party-service python /app/scripts/seed-data/seed_parties.py
-	docker-compose run --rm commission-rules-service python /app/scripts/seed-data/seed_commission_rules.py
+	docker compose run --rm party-service python /app/scripts/seed-data/seed_tenants.py
+	docker compose run --rm party-service python /app/scripts/seed-data/seed_parties.py
+	docker compose run --rm commission-rules-service python /app/scripts/seed-data/seed_commission_rules.py
 
 # ─── Testing ──────────────────────────────────────────────────────────────────
 
@@ -128,16 +128,16 @@ frontend-install: ## Install frontend dependencies
 generate-openapi: ## Generate OpenAPI specs for all services
 	@for svc in $(SERVICES); do \
 		echo "Generating OpenAPI for $$svc..."; \
-		docker-compose run --rm $$svc python -c \
+		docker compose run --rm $$svc python -c \
 			"import json; from app.main import app; print(json.dumps(app.openapi(), indent=2))" \
 			> docs/api/openapi/$$svc.json 2>&1; \
 	done
 
 ps: ## Show running containers
-	docker-compose ps
+	docker compose ps
 
 clean: ## Remove all build artifacts and volumes
-	docker-compose down -v --remove-orphans
+	docker compose down -v --remove-orphans
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
 	find . -name "*.pyc" -delete 2>/dev/null || true

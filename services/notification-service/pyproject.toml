@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "notification-service"
 version = "0.1.0"
 description = "Event-driven notification service for Telco Distribution — Kafka consumer, no direct API writes"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.111",
     "uvicorn[standard]>=0.30",

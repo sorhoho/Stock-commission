@@ -12,18 +12,12 @@ from app.dependencies import (
     CorrelationId,
     DbSession,
     KafkaProducerDep,
-    TenantId,
-    get_correlation_id,
-    get_current_tenant_id,
-    get_db,
-    get_kafka_producer,
-)
+    TenantId)
 from app.domain.models import (
     InventoryStatus,
     ProductInventory,
     ProductInventoryCreate,
-    ProductInventoryUpdate,
-)
+    ProductInventoryUpdate)
 from app.infrastructure.db.repository import InventoryRepository
 from telco_common.exceptions import NotFoundException
 from telco_common.kafka.producer_factory import KafkaProducer
@@ -33,13 +27,14 @@ router = APIRouter(prefix="/productInventory", tags=["ProductInventory"])
 
 @router.get("/", response_model=list[ProductInventory])
 async def list_inventory(
+    *,
     location_id: uuid.UUID | None = Query(default=None),
     product_id: uuid.UUID | None = Query(default=None),
     status: InventoryStatus | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     size: int = Query(default=20, ge=1, le=100),
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    db: DbSession = Depends(get_db),
+    tenant_id: TenantId,
+    db: DbSession,
 ) -> list[ProductInventory]:
     """List product inventory items with optional filters."""
     repo = InventoryRepository(db)
@@ -49,17 +44,15 @@ async def list_inventory(
         product_id=product_id,
         status=status,
         page=page,
-        size=size,
-    )
+        size=size)
     return [ProductInventory.model_validate(item) for item in items]
 
 
 @router.get("/{inventory_id}", response_model=ProductInventory)
 async def get_inventory_item(
     inventory_id: uuid.UUID,
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    db: DbSession = Depends(get_db),
-) -> ProductInventory:
+    tenant_id: TenantId,
+    db: DbSession) -> ProductInventory:
     """Get a product inventory item by ID."""
     repo = InventoryRepository(db)
     item = await repo.get_by_id(inventory_id=inventory_id, tenant_id=tenant_id)
@@ -71,9 +64,8 @@ async def get_inventory_item(
 @router.post("/", response_model=ProductInventory, status_code=status.HTTP_201_CREATED)
 async def create_inventory_item(
     body: ProductInventoryCreate,
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    db: DbSession = Depends(get_db),
-) -> ProductInventory:
+    tenant_id: TenantId,
+    db: DbSession) -> ProductInventory:
     """Create a new product inventory record."""
     repo = InventoryRepository(db)
     item = await repo.create(data=body, tenant_id=tenant_id)
@@ -84,9 +76,8 @@ async def create_inventory_item(
 async def update_inventory_item(
     inventory_id: uuid.UUID,
     body: ProductInventoryUpdate,
-    tenant_id: TenantId = Depends(get_current_tenant_id),
-    db: DbSession = Depends(get_db),
-) -> ProductInventory:
+    tenant_id: TenantId,
+    db: DbSession) -> ProductInventory:
     """Partially update a product inventory record."""
     repo = InventoryRepository(db)
     item = await repo.update(
