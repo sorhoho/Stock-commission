@@ -1,6 +1,13 @@
+"""FastAPI dependency providers for sell-in-service."""
+
 from __future__ import annotations
+
 from collections.abc import AsyncGenerator
+from typing import Annotated
+
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.infrastructure.db.session import async_session_factory
 from telco_common.kafka import KafkaProducer
 
@@ -12,12 +19,6 @@ def set_kafka_producer(p: KafkaProducer) -> None:
     _producer = p
 
 
-async def get_kafka_producer() -> KafkaProducer:
-    if _producer is None:
-        raise RuntimeError("Kafka producer not initialised")
-    return _producer
-
-
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_factory() as session:
         try:
@@ -26,3 +27,29 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         except Exception:
             await session.rollback()
             raise
+
+
+async def get_kafka_producer(request: Request) -> KafkaProducer:
+    producer: KafkaProducer | None = getattr(request.app.state, "kafka_producer", None)
+    if producer is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Kafka producer not available",
+        )
+    return producer
+
+
+def get_current_tenant_id(request: Request) -> str:
+    tenant_id: str = getattr(request.state, "tenant_id", "")
+    if not tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing X-Tenant-ID header",
+        )
+    return tenant_id
+
+
+# Annotated convenience aliases
+DbSession = Annotated[AsyncSession, Depends(get_db)]
+KafkaProducerDep = Annotated[KafkaProducer, Depends(get_kafka_producer)]
+TenantId = Annotated[str, Depends(get_current_tenant_id)]
