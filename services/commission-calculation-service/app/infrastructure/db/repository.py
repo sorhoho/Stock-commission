@@ -379,12 +379,15 @@ class ProcessedEventLogRepository:
             source_transaction_id=source_transaction_id,
             agreement_id=agreement_id,
         )
-        self._session.add(log_entry)
+        # Use a SAVEPOINT so a concurrent-duplicate collision rolls back only
+        # this insert — never the surrounding transaction (which holds the
+        # legitimately-created commission event).
         try:
-            await self._session.flush()
+            async with self._session.begin_nested():
+                self._session.add(log_entry)
+                await self._session.flush()
         except IntegrityError:
-            # Concurrent duplicate — already processed, safe to ignore
-            await self._session.rollback()
+            # Concurrent duplicate — already processed, safe to ignore.
             log.warning(
                 "processed_event_log.duplicate_ignored",
                 source_transaction_id=str(source_transaction_id),

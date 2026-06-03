@@ -6,6 +6,7 @@ from app.domain.rule_evaluator import (
     CommissionRule,
     CommissionType,
     calculate_commission,
+    calculate_tiered_commission,
     find_applicable_rule,
 )
 
@@ -121,9 +122,12 @@ class TestCalculateCommission:
         result = calculate_commission(rule, 3, 10.0)
         assert result == round(10.0 * 3 * 0.333, 2)
 
-    def test_tiered_commission(self):
+    def test_tiered_rule_rejected_by_single_rule_calc(self):
+        # TIERED is progressive and spans multiple bands; a single-rule calc
+        # cannot express it and must refuse rather than silently mis-price.
         rule = make_rule(commission_type=CommissionType.TIERED, commission_value=1.50)
-        assert calculate_commission(rule, 7, 10.0) == 10.5
+        with pytest.raises(ValueError):
+            calculate_commission(rule, 7, 10.0)
 
     def test_zero_quantity_returns_zero(self):
         rule = make_rule(commission_type=CommissionType.FLAT_AMOUNT, commission_value=5.0)
@@ -133,3 +137,46 @@ class TestCalculateCommission:
         rule = make_rule(commission_type=CommissionType.PERCENTAGE, commission_value=0.1)
         result = calculate_commission(rule, 3, 9.99)
         assert result == round(9.99 * 3 * 0.1, 2)
+
+
+class TestCalculateTieredCommission:
+    def _bands(self):
+        return [
+            make_rule(id="t1", commission_type=CommissionType.TIERED,
+                      tier_min_qty=1, tier_max_qty=50, commission_value=1.00),
+            make_rule(id="t2", commission_type=CommissionType.TIERED,
+                      tier_min_qty=51, tier_max_qty=100, commission_value=1.50),
+            make_rule(id="t3", commission_type=CommissionType.TIERED,
+                      tier_min_qty=101, tier_max_qty=None, commission_value=2.00),
+        ]
+
+    def test_progressive_accumulation_across_bands(self):
+        # 50 @ 1.00 + 20 @ 1.50 = 80.00
+        assert calculate_tiered_commission(self._bands(), "SIM", "RETAIL", 70) == 80.0
+
+    def test_single_band_only(self):
+        # entirely within band 1: 30 @ 1.00
+        assert calculate_tiered_commission(self._bands(), "SIM", "RETAIL", 30) == 30.0
+
+    def test_boundary_exactly_at_band_edge(self):
+        # qty 50 stays fully in band 1; qty 51 spills one unit into band 2
+        assert calculate_tiered_commission(self._bands(), "SIM", "RETAIL", 50) == 50.0
+        assert calculate_tiered_commission(self._bands(), "SIM", "RETAIL", 51) == 51.5
+
+    def test_spans_all_three_bands(self):
+        # 50 @ 1.00 + 50 @ 1.50 + 20 @ 2.00 = 50 + 75 + 40 = 165.00
+        assert calculate_tiered_commission(self._bands(), "SIM", "RETAIL", 120) == 165.0
+
+    def test_channel_and_category_filtering(self):
+        bands = [
+            make_rule(id="r", commission_type=CommissionType.TIERED, channel_type="RETAIL",
+                      tier_min_qty=1, tier_max_qty=None, commission_value=1.00),
+            make_rule(id="o", commission_type=CommissionType.TIERED, channel_type="ONLINE",
+                      tier_min_qty=1, tier_max_qty=None, commission_value=9.00),
+        ]
+        # only the RETAIL band applies
+        assert calculate_tiered_commission(bands, "SIM", "RETAIL", 10) == 10.0
+
+    def test_no_tiered_bands_returns_zero(self):
+        flat = [make_rule(commission_type=CommissionType.FLAT_AMOUNT, commission_value=5.0)]
+        assert calculate_tiered_commission(flat, "SIM", "RETAIL", 10) == 0.0

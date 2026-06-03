@@ -5,7 +5,11 @@ from __future__ import annotations
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.rule_evaluator import calculate_commission, find_applicable_rule
+from app.domain.rule_evaluator import (
+    calculate_commission,
+    calculate_tiered_commission,
+    find_applicable_rule,
+)
 from app.infrastructure.db.models import CommissionEvent, CommissionStatement, ProcessedEventLog
 from app.infrastructure.db.repository import (
     CommissionEventRepository,
@@ -102,7 +106,12 @@ async def handle_sell_out_completed(
             logger.info("No matching rule for item", product=item.product_name, channel=data.channel)
             continue
 
-        commission_amount = calculate_commission(matched_rule, item.quantity, item.unit_price)
+        if matched_rule.commission_type == CommissionType.TIERED:
+            commission_amount = calculate_tiered_commission(
+                rules, item.product_name, data.channel, item.quantity
+            )
+        else:
+            commission_amount = calculate_commission(matched_rule, item.quantity, item.unit_price)
         base_amount = item.unit_price * item.quantity
         now_str = datetime.now(UTC).isoformat()
 
