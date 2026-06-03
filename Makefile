@@ -1,4 +1,4 @@
-.PHONY: help build up down logs test migrate seed e2e lint fmt infra-up infra-down topics
+.PHONY: help build up down logs test migrate seed e2e e2e-http lint fmt infra-up infra-down topics
 
 # Colours
 BOLD  := $(shell tput bold)
@@ -75,8 +75,11 @@ test: ## Run all unit tests
 test-%: ## Run tests for a specific service: make test-sell-out-service
 	cd services/$* && python -m pytest tests/ -v --tb=short
 
-e2e: ## End-to-end pipeline test (publish sell-out -> assert commission calculated)
+e2e: ## E2E pipeline test via Kafka (inject sell-out event -> assert commission)
 	bash scripts/e2e-test.sh
+
+e2e-http: ## E2E test via HTTP (Keycloak token -> POST sale API -> assert commission)
+	bash scripts/e2e-http-test.sh
 
 test-integration: ## Run integration tests (requires infra running)
 	@for svc in $(SERVICES); do \

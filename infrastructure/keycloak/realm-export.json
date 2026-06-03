@@ -17,7 +17,11 @@
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "protocol": "openid-connect",
-      "defaultClientScopes": ["openid", "profile", "email"],
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ],
       "optionalClientScopes": []
     },
     {
@@ -28,35 +32,217 @@
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": true,
-      "redirectUris": ["http://localhost:3000/*", "http://frontend:80/*"],
-      "webOrigins": ["http://localhost:3000", "http://frontend"],
-      "protocol": "openid-connect"
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "http://frontend:80/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "http://frontend"
+      ],
+      "protocol": "openid-connect",
+      "defaultClientScopes": [
+        "profile",
+        "email",
+        "sell_out:create",
+        "sell_out:read",
+        "commission_rules:read",
+        "commission_rules:write",
+        "commission_statement:read",
+        "commission_statement:confirm",
+        "party:read",
+        "party:write",
+        "inventory:read",
+        "inventory:write",
+        "payout:create",
+        "payout:admin",
+        "audit:read",
+        "admin"
+      ],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "tenant_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "tenant_id",
+            "claim.name": "tenant_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "party_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "party_id",
+            "claim.name": "party_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "telco-services-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "telco-services",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "clientScopes": [
-    {"name": "inventory:read",  "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
-    {"name": "inventory:write", "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
-    {"name": "sell_out:create", "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
-    {"name": "sell_out:read",   "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
-    {"name": "commission_rules:read",  "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
-    {"name": "commission_rules:write", "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
-    {"name": "commission_statement:read",    "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
-    {"name": "commission_statement:confirm", "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
-    {"name": "payout:create",  "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
-    {"name": "payout:admin",   "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
-    {"name": "party:read",     "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
-    {"name": "party:write",    "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
-    {"name": "admin",          "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}},
-    {"name": "audit:read",     "protocol": "openid-connect", "attributes": {"include.in.token.scope": "true"}}
+    {
+      "name": "inventory:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "inventory:write",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "sell_out:create",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "sell_out:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "commission_rules:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "commission_rules:write",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "commission_statement:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "commission_statement:confirm",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "payout:create",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "payout:admin",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "party:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "party:write",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "admin",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "audit:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    }
   ],
   "roles": {
     "realm": [
-      {"name": "admin",           "description": "System administrator"},
-      {"name": "distributor",     "description": "Distributor / supplier"},
-      {"name": "dealer",          "description": "Dealer / channel partner"},
-      {"name": "sales_employee",  "description": "Sales team member"},
-      {"name": "finance_manager", "description": "Finance and commission approver"},
-      {"name": "analyst",         "description": "Read-only reporting access"}
+      {
+        "name": "admin",
+        "description": "System administrator"
+      },
+      {
+        "name": "distributor",
+        "description": "Distributor / supplier"
+      },
+      {
+        "name": "dealer",
+        "description": "Dealer / channel partner"
+      },
+      {
+        "name": "sales_employee",
+        "description": "Sales team member"
+      },
+      {
+        "name": "finance_manager",
+        "description": "Finance and commission approver"
+      },
+      {
+        "name": "analyst",
+        "description": "Read-only reporting access"
+      }
     ]
   },
   "users": [
@@ -67,9 +253,21 @@
       "emailVerified": true,
       "firstName": "System",
       "lastName": "Admin",
-      "credentials": [{"type": "password", "value": "admin123", "temporary": false}],
-      "realmRoles": ["admin"],
-      "attributes": {"tenant_id": ["tenant-demo"]}
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "tenant-demo"
+        ]
+      }
     },
     {
       "username": "dealer1@telco.local",
@@ -78,11 +276,23 @@
       "emailVerified": true,
       "firstName": "Demo",
       "lastName": "Dealer",
-      "credentials": [{"type": "password", "value": "dealer123", "temporary": false}],
-      "realmRoles": ["dealer"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dealer123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "dealer"
+      ],
       "attributes": {
-        "tenant_id": ["tenant-demo"],
-        "party_id": ["00000000-0000-0000-0000-000000000001"]
+        "tenant_id": [
+          "tenant-demo"
+        ],
+        "party_id": [
+          "00000000-0000-0000-0000-000000000001"
+        ]
       }
     },
     {
@@ -92,9 +302,21 @@
       "emailVerified": true,
       "firstName": "Finance",
       "lastName": "Manager",
-      "credentials": [{"type": "password", "value": "finance123", "temporary": false}],
-      "realmRoles": ["finance_manager"],
-      "attributes": {"tenant_id": ["tenant-demo"]}
+      "credentials": [
+        {
+          "type": "password",
+          "value": "finance123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "finance_manager"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "tenant-demo"
+        ]
+      }
     }
   ],
   "protocolMappers": [
