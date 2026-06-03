@@ -1,4 +1,4 @@
-.PHONY: help build up down logs test migrate seed lint fmt infra-up infra-down topics
+.PHONY: help build up down logs test migrate seed e2e lint fmt infra-up infra-down topics
 
 # Colours
 BOLD  := $(shell tput bold)
@@ -60,10 +60,8 @@ migrate-%: ## Run migrations for a specific service: make migrate-inventory-serv
 
 # ─── Seed data ────────────────────────────────────────────────────────────────
 
-seed: ## Seed development data (tenants, parties, commission rules)
-	docker compose run --rm party-service python /app/scripts/seed-data/seed_tenants.py
-	docker compose run --rm party-service python /app/scripts/seed-data/seed_parties.py
-	docker compose run --rm commission-rules-service python /app/scripts/seed-data/seed_commission_rules.py
+seed: ## Seed development data (parties, commission rules + dealer agreement)
+	docker compose exec -T postgres psql -U postgres -v ON_ERROR_STOP=1 -f - < scripts/seed-data/seed.sql
 
 # ─── Testing ──────────────────────────────────────────────────────────────────
 
@@ -76,6 +74,9 @@ test: ## Run all unit tests
 
 test-%: ## Run tests for a specific service: make test-sell-out-service
 	cd services/$* && python -m pytest tests/ -v --tb=short
+
+e2e: ## End-to-end pipeline test (publish sell-out -> assert commission calculated)
+	bash scripts/e2e-test.sh
 
 test-integration: ## Run integration tests (requires infra running)
 	@for svc in $(SERVICES); do \

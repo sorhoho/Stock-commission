@@ -4,7 +4,7 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db
+from app.dependencies import get_current_tenant_id, get_db
 from app.domain.models import Agreement, AgreementCreate, AgreementUpdate, AgreementWithRules
 from app.infrastructure.db.models import Agreement as AgreementORM
 from app.infrastructure.db.repository import AgreementRepository, CommissionRuleRepository
@@ -39,13 +39,17 @@ async def create_agreement(data: AgreementCreate, db: AsyncSession = Depends(get
 async def get_active_agreement_for_party(
     party_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    token=Depends(require_auth([Scopes.COMMISSION_RULES_READ])),
+    tenant_id: str = Depends(get_current_tenant_id),
 ):
-    """Key endpoint called by commission-calculation-service."""
+    """Internal endpoint called by commission-calculation-service.
+
+    Authenticates via the X-Tenant-ID header (trusted internal network)
+    rather than a user JWT, since the caller is another service.
+    """
     agreement_repo = AgreementRepository(db)
     rule_repo = CommissionRuleRepository(db)
 
-    agreement = await agreement_repo.get_active_for_party(str(party_id), token.tenant_id)
+    agreement = await agreement_repo.get_active_for_party(str(party_id), tenant_id)
     if not agreement:
         raise NotFoundException("Agreement", f"party/{party_id}/active")
 
