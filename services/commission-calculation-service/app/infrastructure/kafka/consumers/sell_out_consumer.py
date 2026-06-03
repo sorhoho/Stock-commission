@@ -5,7 +5,6 @@ from __future__ import annotations
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.models import CommissionEventStatus
 from app.domain.rule_evaluator import calculate_commission, find_applicable_rule
 from app.infrastructure.db.models import CommissionEvent, CommissionStatement, ProcessedEventLog
 from app.infrastructure.db.repository import (
@@ -108,8 +107,7 @@ async def handle_sell_out_completed(
         now_str = datetime.now(UTC).isoformat()
 
         # Persist commission event
-        from app.infrastructure.db.models import CommissionEvent as CommissionEventORM
-        commission_event = CommissionEventORM(
+        created_event = await event_repo.create(
             source_transaction_id=data.transaction_id,
             party_id=data.dealer_party_id,
             agreement_id=agreement_id,
@@ -120,10 +118,8 @@ async def handle_sell_out_completed(
             commission_amount=commission_amount,
             currency=data.currency,
             calculation_date=datetime.now(UTC),
-            status=CommissionEventStatus.CALCULATED,
             tenant_id=tenant_id,
         )
-        created_event = await event_repo.create(commission_event)
 
         # Mark processed
         await log_repo.mark_processed(data.transaction_id, agreement_id)
