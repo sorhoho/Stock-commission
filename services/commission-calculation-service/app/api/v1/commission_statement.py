@@ -23,11 +23,12 @@ async def list_statements(
     year: int | None = None,
     month: int | None = None,
     db: AsyncSession = Depends(get_db),
-    _token=Depends(require_auth([Scopes.COMMISSION_STATEMENT_READ])),
+    token=Depends(require_auth([Scopes.COMMISSION_STATEMENT_READ])),
 ):
     repo = CommissionStatementRepository(db)
-    items = await repo.list_with_filters(
-        party_id=str(party_id) if party_id else None,
+    items, _ = await repo.list_with_filters(
+        tenant_id=token.tenant_id,
+        party_id=party_id,
         year=year,
         month=month,
     )
@@ -38,10 +39,10 @@ async def list_statements(
 async def get_statement(
     statement_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _token=Depends(require_auth([Scopes.COMMISSION_STATEMENT_READ])),
+    token=Depends(require_auth([Scopes.COMMISSION_STATEMENT_READ])),
 ):
     repo = CommissionStatementRepository(db)
-    item = await repo.get_by_id(str(statement_id))
+    item = await repo.get_by_id(statement_id, token.tenant_id)
     if not item:
         raise NotFoundException("CommissionStatement", str(statement_id))
     return CommissionStatement.model_validate(item)
@@ -51,10 +52,10 @@ async def get_statement(
 async def confirm_statement(
     statement_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _token=Depends(require_auth([Scopes.COMMISSION_STATEMENT_CONFIRM])),
+    token=Depends(require_auth([Scopes.COMMISSION_STATEMENT_CONFIRM])),
 ):
     repo = CommissionStatementRepository(db)
-    item = await repo.get_by_id(str(statement_id))
+    item = await repo.get_by_id(statement_id, token.tenant_id)
     if not item:
         raise NotFoundException("CommissionStatement", str(statement_id))
     if item.status != CommissionStatementStatus.DRAFT:
@@ -68,10 +69,10 @@ async def dispute_statement(
     statement_id: UUID,
     body: dict = Body(..., example={"reason": "Incorrect commission rate applied"}),
     db: AsyncSession = Depends(get_db),
-    _token=Depends(require_auth([Scopes.COMMISSION_STATEMENT_READ])),
+    token=Depends(require_auth([Scopes.COMMISSION_STATEMENT_READ])),
 ):
     repo = CommissionStatementRepository(db)
-    item = await repo.get_by_id(str(statement_id))
+    item = await repo.get_by_id(statement_id, token.tenant_id)
     if not item:
         raise NotFoundException("CommissionStatement", str(statement_id))
     return {"status": "dispute_received", "statement_id": str(statement_id), "reason": body.get("reason")}

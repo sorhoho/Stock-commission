@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,13 +18,13 @@ class PayoutRequestRepository:
         return request
 
     async def get_by_id(self, request_id: str) -> PayoutRequest | None:
-        result = await self._session.execute(select(PayoutRequest).where(PayoutRequest.id == request_id))
+        result = await self._session.execute(select(PayoutRequest).where(PayoutRequest.id == uuid.UUID(request_id)))
         return result.scalar_one_or_none()
 
     async def list_with_filters(self, tenant_id: str, party_id: str | None = None, status: str | None = None) -> list[PayoutRequest]:
         q = select(PayoutRequest).where(PayoutRequest.tenant_id == tenant_id)
         if party_id:
-            q = q.where(PayoutRequest.party_id == party_id)
+            q = q.where(PayoutRequest.party_id == uuid.UUID(party_id))
         if status:
             q = q.where(PayoutRequest.status == status)
         result = await self._session.execute(q.order_by(PayoutRequest.created_at.desc()))
@@ -32,4 +34,4 @@ class PayoutRequestRepository:
         values: dict = {"status": status}
         if external_reference:
             values["external_reference"] = external_reference
-        await self._session.execute(update(PayoutRequest).where(PayoutRequest.id == request_id).values(**values))
+        await self._session.execute(update(PayoutRequest).where(PayoutRequest.id == uuid.UUID(request_id)).values(**values))

@@ -27,11 +27,12 @@ async def list_commission_events(
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=100)] = 20,
     db: AsyncSession = Depends(get_db),
-    _token=Depends(require_auth([Scopes.COMMISSION_STATEMENT_READ])),
+    token=Depends(require_auth([Scopes.COMMISSION_STATEMENT_READ])),
 ):
     repo = CommissionEventRepository(db)
     items, total = await repo.list_with_filters(
-        party_id=str(party_id) if party_id else None,
+        tenant_id=token.tenant_id,
+        party_id=party_id,
         from_date=from_date,
         to_date=to_date,
         status=status,
@@ -45,10 +46,10 @@ async def list_commission_events(
 async def get_commission_event(
     event_id: UUID,
     db: AsyncSession = Depends(get_db),
-    _token=Depends(require_auth([Scopes.COMMISSION_STATEMENT_READ])),
+    token=Depends(require_auth([Scopes.COMMISSION_STATEMENT_READ])),
 ):
     repo = CommissionEventRepository(db)
-    item = await repo.get_by_id(str(event_id))
+    item = await repo.get_by_id(event_id, token.tenant_id)
     if not item:
         raise NotFoundException("CommissionEvent", str(event_id))
     return CommissionEvent.model_validate(item)

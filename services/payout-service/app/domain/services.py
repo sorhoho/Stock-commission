@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import uuid
 from datetime import UTC, date, datetime
 
@@ -70,7 +71,6 @@ async def process_payout(
         raise NotFoundException("PayoutRequest", payout_request_id)
 
     # Mock payment gateway call
-    import random
     success = random.random() > 0.05  # 95% success rate in mock
     external_ref = f"MOCK-{uuid.uuid4().hex[:12].upper()}"
 
