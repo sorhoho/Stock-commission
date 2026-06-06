@@ -51,6 +51,8 @@ class Topics:
     INVENTORY_STOCK_TRANSFERRED = "telco.inventory.stock.transferred"
     INVENTORY_STOCK_ADJUSTED = "telco.inventory.stock.adjusted"
     INVENTORY_STOCK_RESERVED = "telco.inventory.stock.reserved"
+    INVENTORY_STOCK_RECEIVED = "telco.inventory.stock.received"
+    INVENTORY_RESOURCE_ALLOCATED = "telco.inventory.resource.allocated"
 
     SALES_SELLOUT_COMPLETED = "telco.sales.sellout.completed"
     SALES_SELLOUT_REVERSED = "telco.sales.sellout.reversed"

@@ -8,17 +8,27 @@ from datetime import UTC, datetime
 import structlog
 
 from app.domain.models import (
+    GoodsReceiptCreate,
     InventoryStatus,
+    LocationType,
+    ProductInventoryCreate,
+    ReconciliationStatus,
+    StockReservationCreate,
     StockTransferCreate,
     TransferStatus,
 )
 from app.infrastructure.db.repository import (
+    GoodsReceiptRepository,
     InventoryRepository,
+    ReconciliationRepository,
+    StockReservationRepository,
     StockTransferRepository,
 )
 from telco_common.events.cloudevents import Topics, make_event
 from telco_common.events.schemas.inventory_events import (
     StockAdjustedData,
+    StockReceivedData,
+    StockReservedData,
     StockTransferredData,
 )
 from telco_common.exceptions import NotFoundException, UnprocessableEntityException
@@ -242,3 +252,178 @@ async def adjust_stock(
         tenant_id=tenant_id,
     )
     return updated_item
+
+
+async def receive_stock(
+    data: GoodsReceiptCreate,
+    tenant_id: str,
+    grn_repo: GoodsReceiptRepository,
+    inventory_repo: InventoryRepository,
+    kafka_producer: KafkaProducer,
+    correlation_id: str | None = None,
+) -> object:
+    """Record a goods receipt and increase inventory at the destination location.
+
+    Mirrors complete_transfer(): if an inventory record already exists for this
+    product + location, adjust its quantity; otherwise create a new record.
+    """
+    receipt = await grn_repo.create(data, tenant_id)
+
+    existing = await inventory_repo.list_with_filters(
+        tenant_id=tenant_id,
+        product_id=data.product_id,
+        location_id=data.location_id,
+    )
+    if existing:
+        await inventory_repo.adjust_quantity(existing[0].id, data.quantity_received, tenant_id)
+    else:
+        from app.infrastructure.db.models import Location as OrmLocation
+        from sqlalchemy import select
+        loc_result = await inventory_repo._session.execute(
+            select(OrmLocation).where(OrmLocation.id == data.location_id)
+        )
+        orm_loc = loc_result.scalar_one_or_none()
+        loc_type = LocationType(orm_loc.type) if orm_loc else LocationType.WAREHOUSE
+        new_inv = ProductInventoryCreate(
+            product_id=data.product_id,
+            product_name=f"Product {data.product_id}",
+            quantity=data.quantity_received,
+            location_id=data.location_id,
+            location_type=loc_type,
+            status=InventoryStatus.AVAILABLE,
+        )
+        await inventory_repo.create(new_inv, tenant_id)
+
+    event_data = StockReceivedData(
+        grn_id=str(receipt.id),
+        grn_number=receipt.grn_number,
+        supplier_reference=receipt.supplier_reference,
+        product_id=str(receipt.product_id),
+        location_id=str(receipt.location_id),
+        quantity_received=receipt.quantity_received,
+        received_by=receipt.received_by,
+        received_date=receipt.received_date.isoformat(),
+        tenant_id=tenant_id,
+    )
+    event = make_event(
+        event_type=Topics.INVENTORY_STOCK_RECEIVED,
+        source_service="inventory-service",
+        tenant_id=tenant_id,
+        data=event_data,
+        correlation_id=correlation_id,
+    )
+    await kafka_producer.send(
+        topic=Topics.INVENTORY_STOCK_RECEIVED, event=event, key=str(receipt.id)
+    )
+    log.info("goods_receipt.created", grn_id=str(receipt.id), qty=data.quantity_received)
+    return receipt
+
+
+async def reserve_stock(
+    data: StockReservationCreate,
+    tenant_id: str,
+    inventory_repo: InventoryRepository,
+    reservation_repo: StockReservationRepository,
+    kafka_producer: KafkaProducer,
+    correlation_id: str | None = None,
+) -> object:
+    """Create a stock reservation, validating that sufficient stock is available."""
+    item = await inventory_repo.get_by_id(data.inventory_id, tenant_id)
+    if item is None:
+        raise NotFoundException("ProductInventory", str(data.inventory_id))
+
+    already_reserved = await reservation_repo.total_reserved(data.inventory_id, tenant_id)
+    available = item.quantity - already_reserved
+    if available < data.reserved_quantity:
+        raise UnprocessableEntityException(
+            f"Insufficient available stock: available={available}, requested={data.reserved_quantity}"
+        )
+
+    reservation = await reservation_repo.create(data, tenant_id)
+
+    event_data = StockReservedData(
+        reservation_id=str(reservation.id),
+        inventory_id=str(data.inventory_id),
+        reserved_quantity=data.reserved_quantity,
+        reserved_by=data.reserved_by,
+        reservation_expiry=data.reservation_expiry.isoformat(),
+        tenant_id=tenant_id,
+    )
+    event = make_event(
+        event_type=Topics.INVENTORY_STOCK_RESERVED,
+        source_service="inventory-service",
+        tenant_id=tenant_id,
+        data=event_data,
+        correlation_id=correlation_id,
+    )
+    await kafka_producer.send(
+        topic=Topics.INVENTORY_STOCK_RESERVED, event=event, key=str(reservation.id)
+    )
+    log.info("stock.reserved", reservation_id=str(reservation.id), qty=data.reserved_quantity)
+    return reservation
+
+
+async def release_reservation(
+    reservation_id: uuid.UUID,
+    tenant_id: str,
+    reservation_repo: StockReservationRepository,
+) -> None:
+    """Delete a stock reservation."""
+    deleted = await reservation_repo.delete(reservation_id, tenant_id)
+    if not deleted:
+        raise NotFoundException("StockReservation", str(reservation_id))
+    log.info("stock.reservation_released", reservation_id=str(reservation_id))
+
+
+async def approve_reconciliation(
+    reconciliation_id: uuid.UUID,
+    approved_by: str,
+    tenant_id: str,
+    recon_repo: ReconciliationRepository,
+    inventory_repo: InventoryRepository,
+    kafka_producer: KafkaProducer,
+    correlation_id: str | None = None,
+) -> object:
+    """Approve a SUBMITTED reconciliation and apply all non-zero variances as stock adjustments."""
+    recon = await recon_repo.get_by_id(reconciliation_id, tenant_id)
+    if recon is None:
+        raise NotFoundException("StockReconciliation", str(reconciliation_id))
+    if recon.status != ReconciliationStatus.SUBMITTED:
+        raise UnprocessableEntityException(
+            f"Reconciliation must be SUBMITTED to approve (current={recon.status})"
+        )
+
+    for item in recon.items:
+        if item.variance == 0:
+            continue
+        existing = await inventory_repo.list_with_filters(
+            tenant_id=tenant_id, product_id=item.product_id
+        )
+        if not existing:
+            continue
+        inv_item = existing[0]
+        new_qty = inv_item.quantity + item.variance
+        if new_qty < 0:
+            log.warning(
+                "reconciliation.variance_would_go_negative",
+                product_id=str(item.product_id),
+                current=inv_item.quantity,
+                variance=item.variance,
+            )
+            continue
+        await adjust_stock(
+            inventory_id=inv_item.id,
+            delta=item.variance,
+            reason=f"Reconciliation {recon.id}",
+            adjusted_by=approved_by,
+            tenant_id=tenant_id,
+            inventory_repo=inventory_repo,
+            kafka_producer=kafka_producer,
+            correlation_id=correlation_id,
+        )
+
+    updated = await recon_repo.update_status(
+        reconciliation_id, tenant_id, ReconciliationStatus.APPROVED, approved_by=approved_by
+    )
+    log.info("reconciliation.approved", reconciliation_id=str(reconciliation_id))
+    return updated

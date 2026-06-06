@@ -1,7 +1,8 @@
-"""FastAPI application entry point for inventory-service (TMF637)."""
+"""FastAPI application entry point for inventory-service (TMF637 + TMF639)."""
 
 from __future__ import annotations
 
+import asyncio
 import structlog
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -50,10 +51,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Expose producer on app state for dependency injection
     app.state.kafka_producer = _kafka_producer
 
+    # Start Kafka consumer (sell-out → inventory deduction)
+    from app.infrastructure.kafka.consumers.sell_out_consumer import start_consumer
+    consumer_task = asyncio.create_task(
+        start_consumer(
+            bootstrap_servers=settings.kafka_bootstrap_servers,
+            group_id=f"{settings.service_name}-sellout-consumer",
+            kafka_producer=_kafka_producer,
+        )
+    )
+    log.info("Sell-out consumer task started")
+
     yield
 
     # Shutdown
     log.info("Shutting down inventory-service")
+    consumer_task.cancel()
+    try:
+        await consumer_task
+    except asyncio.CancelledError:
+        pass
     await _kafka_producer.stop()
     await engine.dispose()
     log.info("inventory-service shutdown complete")

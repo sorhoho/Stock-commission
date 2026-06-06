@@ -31,3 +31,12 @@ INSERT INTO agreement (id, agreement_spec_id, party_id, party_name, status, sign
 VALUES
   ('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Dealer Alpha', 'ACTIVE', '2026-01-01', 'tenant-demo')
 ON CONFLICT (id) DO NOTHING;
+
+\c inventory
+-- Locations: central warehouse, company-owned shop, dealer outlet
+INSERT INTO location (id, name, type, address, tenant_id)
+VALUES
+  ('dddddddd-0000-0000-0000-000000000001', 'Central Warehouse', 'WAREHOUSE', '1 Warehouse Rd, City', 'tenant-demo'),
+  ('dddddddd-0000-0000-0000-000000000002', 'Main Street Own Shop', 'OWN_SHOP', '10 Main St, City', 'tenant-demo'),
+  ('dddddddd-0000-0000-0000-000000000003', 'Dealer Alpha Outlet', 'DEALER_OUTLET', '22 Alpha Ave, City', 'tenant-demo')
+ON CONFLICT (id) DO NOTHING;

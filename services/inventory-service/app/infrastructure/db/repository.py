@@ -6,16 +6,22 @@ import uuid
 from datetime import UTC, datetime
 from typing import Sequence
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.domain.models import (
+    GoodsReceiptCreate,
     InventoryStatus,
     LocationCreate,
     LocationType,
     LocationUpdate,
     ProductInventoryCreate,
     ProductInventoryUpdate,
+    ReconciliationStatus,
+    ResourceCreate,
+    ResourceStatusType,
+    StockReservationCreate,
     StockTransferCreate,
     TransferStatus,
 )
@@ -256,3 +262,291 @@ class StockTransferRepository:
         await self._session.flush()
         await self._session.refresh(transfer)
         return transfer
+
+
+class GoodsReceiptRepository:
+    """Data-access layer for GoodsReceipt entities."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create(self, data: GoodsReceiptCreate, tenant_id: str) -> orm.GoodsReceipt:
+        receipt = orm.GoodsReceipt(
+            grn_number=data.grn_number,
+            supplier_reference=data.supplier_reference,
+            product_id=data.product_id,
+            location_id=data.location_id,
+            quantity_received=data.quantity_received,
+            unit_cost=data.unit_cost,
+            received_by=data.received_by,
+            received_date=data.received_date,
+            tenant_id=tenant_id,
+        )
+        self._session.add(receipt)
+        await self._session.flush()
+        await self._session.refresh(receipt)
+        return receipt
+
+    async def get_by_id(self, receipt_id: uuid.UUID, tenant_id: str) -> orm.GoodsReceipt | None:
+        result = await self._session.execute(
+            select(orm.GoodsReceipt).where(
+                orm.GoodsReceipt.id == receipt_id,
+                orm.GoodsReceipt.tenant_id == tenant_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def list_with_filters(
+        self,
+        tenant_id: str,
+        product_id: uuid.UUID | None = None,
+        location_id: uuid.UUID | None = None,
+        page: int = 1,
+        size: int = 20,
+    ) -> list[orm.GoodsReceipt]:
+        query = select(orm.GoodsReceipt).where(orm.GoodsReceipt.tenant_id == tenant_id)
+        if product_id is not None:
+            query = query.where(orm.GoodsReceipt.product_id == product_id)
+        if location_id is not None:
+            query = query.where(orm.GoodsReceipt.location_id == location_id)
+        offset = (page - 1) * size
+        query = query.order_by(orm.GoodsReceipt.received_date.desc()).offset(offset).limit(size)
+        result = await self._session.execute(query)
+        return list(result.scalars().all())
+
+
+class StockReservationRepository:
+    """Data-access layer for StockReservation entities."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create(self, data: StockReservationCreate, tenant_id: str) -> orm.StockReservation:
+        reservation = orm.StockReservation(
+            inventory_id=data.inventory_id,
+            reserved_quantity=data.reserved_quantity,
+            reserved_by=data.reserved_by,
+            reservation_expiry=data.reservation_expiry,
+            reason=data.reason,
+            tenant_id=tenant_id,
+        )
+        self._session.add(reservation)
+        await self._session.flush()
+        await self._session.refresh(reservation)
+        return reservation
+
+    async def get_by_id(self, reservation_id: uuid.UUID, tenant_id: str) -> orm.StockReservation | None:
+        result = await self._session.execute(
+            select(orm.StockReservation).where(
+                orm.StockReservation.id == reservation_id,
+                orm.StockReservation.tenant_id == tenant_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def list_for_inventory(
+        self, inventory_id: uuid.UUID, tenant_id: str
+    ) -> list[orm.StockReservation]:
+        result = await self._session.execute(
+            select(orm.StockReservation).where(
+                orm.StockReservation.inventory_id == inventory_id,
+                orm.StockReservation.tenant_id == tenant_id,
+            )
+        )
+        return list(result.scalars().all())
+
+    async def total_reserved(self, inventory_id: uuid.UUID, tenant_id: str) -> int:
+        from sqlalchemy import func
+        result = await self._session.execute(
+            select(func.coalesce(func.sum(orm.StockReservation.reserved_quantity), 0)).where(
+                orm.StockReservation.inventory_id == inventory_id,
+                orm.StockReservation.tenant_id == tenant_id,
+            )
+        )
+        return result.scalar_one()
+
+    async def delete(self, reservation_id: uuid.UUID, tenant_id: str) -> bool:
+        result = await self._session.execute(
+            delete(orm.StockReservation).where(
+                orm.StockReservation.id == reservation_id,
+                orm.StockReservation.tenant_id == tenant_id,
+            )
+        )
+        return result.rowcount > 0
+
+
+class ResourceRepository:
+    """Data-access layer for TMF 639 Resource entities."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create(self, data: ResourceCreate, tenant_id: str) -> orm.Resource:
+        resource = orm.Resource(
+            resource_name=data.resource_name,
+            resource_type=data.resource_type,
+            product_id=data.product_id,
+            inventory_id=data.inventory_id,
+            location_id=data.location_id,
+            status=data.status,
+            batch_reference=data.batch_reference,
+            supplier_reference=data.supplier_reference,
+            tenant_id=tenant_id,
+        )
+        self._session.add(resource)
+        await self._session.flush()
+        for char in data.characteristics:
+            rc = orm.ResourceCharacteristic(
+                resource_id=resource.id,
+                name=char.name,
+                value=char.value,
+                tenant_id=tenant_id,
+            )
+            self._session.add(rc)
+        await self._session.flush()
+        result = await self._session.execute(
+            select(orm.Resource)
+            .options(selectinload(orm.Resource.characteristics))
+            .where(orm.Resource.id == resource.id)
+        )
+        return result.scalar_one()
+
+    async def get_by_id(self, resource_id: uuid.UUID, tenant_id: str) -> orm.Resource | None:
+        result = await self._session.execute(
+            select(orm.Resource)
+            .options(selectinload(orm.Resource.characteristics))
+            .execution_options(populate_existing=True)
+            .where(
+                orm.Resource.id == resource_id,
+                orm.Resource.tenant_id == tenant_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def list_with_filters(
+        self,
+        tenant_id: str,
+        product_id: uuid.UUID | None = None,
+        status: ResourceStatusType | None = None,
+        inventory_id: uuid.UUID | None = None,
+        characteristic_name: str | None = None,
+        characteristic_value: str | None = None,
+        page: int = 1,
+        size: int = 20,
+    ) -> list[orm.Resource]:
+        query = (
+            select(orm.Resource)
+            .options(selectinload(orm.Resource.characteristics))
+            .where(orm.Resource.tenant_id == tenant_id)
+        )
+        if product_id is not None:
+            query = query.where(orm.Resource.product_id == product_id)
+        if status is not None:
+            query = query.where(orm.Resource.status == status)
+        if inventory_id is not None:
+            query = query.where(orm.Resource.inventory_id == inventory_id)
+        if characteristic_name is not None and characteristic_value is not None:
+            query = query.join(
+                orm.ResourceCharacteristic,
+                orm.ResourceCharacteristic.resource_id == orm.Resource.id,
+            ).where(
+                orm.ResourceCharacteristic.name == characteristic_name,
+                orm.ResourceCharacteristic.value == characteristic_value,
+                orm.ResourceCharacteristic.tenant_id == tenant_id,
+            )
+        offset = (page - 1) * size
+        query = query.offset(offset).limit(size)
+        result = await self._session.execute(query)
+        return list(result.scalars().unique().all())
+
+    async def update_status(
+        self,
+        resource_id: uuid.UUID,
+        tenant_id: str,
+        status: ResourceStatusType,
+        allocated_to: str | None = None,
+    ) -> orm.Resource | None:
+        resource = await self.get_by_id(resource_id, tenant_id)
+        if resource is None:
+            return None
+        resource.status = status
+        if allocated_to is not None:
+            resource.allocated_to = allocated_to
+        await self._session.flush()
+        await self._session.refresh(resource)
+        return resource
+
+
+class ReconciliationRepository:
+    """Data-access layer for StockReconciliation entities."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create(
+        self,
+        data_dict: dict,
+        items: list[dict],
+        tenant_id: str,
+    ) -> orm.StockReconciliation:
+        recon = orm.StockReconciliation(
+            location_id=data_dict["location_id"],
+            reconciliation_date=data_dict["reconciliation_date"],
+            status=ReconciliationStatus.DRAFT,
+            counted_by=data_dict["counted_by"],
+            notes=data_dict.get("notes"),
+            tenant_id=tenant_id,
+        )
+        self._session.add(recon)
+        await self._session.flush()
+        for item in items:
+            ri = orm.StockReconciliationItem(
+                reconciliation_id=recon.id,
+                product_id=item["product_id"],
+                system_quantity=item["system_quantity"],
+                physical_quantity=item["physical_quantity"],
+                variance=item["physical_quantity"] - item["system_quantity"],
+                tenant_id=tenant_id,
+            )
+            self._session.add(ri)
+        await self._session.flush()
+        result = await self._session.execute(
+            select(orm.StockReconciliation)
+            .options(selectinload(orm.StockReconciliation.items))
+            .where(orm.StockReconciliation.id == recon.id)
+        )
+        return result.scalar_one()
+
+    async def get_by_id(
+        self, reconciliation_id: uuid.UUID, tenant_id: str
+    ) -> orm.StockReconciliation | None:
+        result = await self._session.execute(
+            select(orm.StockReconciliation)
+            .options(selectinload(orm.StockReconciliation.items))
+            .where(
+                orm.StockReconciliation.id == reconciliation_id,
+                orm.StockReconciliation.tenant_id == tenant_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def update_status(
+        self,
+        reconciliation_id: uuid.UUID,
+        tenant_id: str,
+        status: ReconciliationStatus,
+        approved_by: str | None = None,
+    ) -> orm.StockReconciliation | None:
+        recon = await self.get_by_id(reconciliation_id, tenant_id)
+        if recon is None:
+            return None
+        recon.status = status
+        if approved_by is not None:
+            recon.approved_by = approved_by
+        await self._session.flush()
+        result = await self._session.execute(
+            select(orm.StockReconciliation)
+            .options(selectinload(orm.StockReconciliation.items))
+            .where(orm.StockReconciliation.id == reconciliation_id)
+        )
+        return result.scalar_one()

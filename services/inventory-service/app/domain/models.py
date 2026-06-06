@@ -19,6 +19,7 @@ class LocationType(StrEnum):
     WAREHOUSE = "WAREHOUSE"
     DISTRIBUTION_CENTER = "DISTRIBUTION_CENTER"
     DEALER_OUTLET = "DEALER_OUTLET"
+    OWN_SHOP = "OWN_SHOP"
 
 
 class InventoryStatus(StrEnum):
@@ -145,3 +146,190 @@ class StockTransferCreate(BaseModel):
 class StockTransferUpdate(BaseModel):
     status: TransferStatus | None = None
     completed_date: datetime | None = None
+
+
+# ---------------------------------------------------------------------------
+# GoodsReceipt models (stock receipt from SAP / supplier)
+# ---------------------------------------------------------------------------
+
+
+class GoodsReceipt(BaseModel):
+    id: uuid.UUID
+    grn_number: str
+    supplier_reference: str | None = None
+    product_id: uuid.UUID
+    location_id: uuid.UUID
+    quantity_received: int
+    unit_cost: float | None = None
+    received_by: str
+    received_date: datetime
+    tenant_id: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class GoodsReceiptCreate(BaseModel):
+    grn_number: str
+    supplier_reference: str | None = None
+    product_id: uuid.UUID
+    location_id: uuid.UUID
+    quantity_received: int = Field(gt=0)
+    unit_cost: float | None = None
+    received_by: str
+    received_date: datetime
+
+
+# ---------------------------------------------------------------------------
+# StockReservation domain models (activate dormant ORM table)
+# ---------------------------------------------------------------------------
+
+
+class StockReservation(BaseModel):
+    id: uuid.UUID
+    inventory_id: uuid.UUID
+    reserved_quantity: int
+    reserved_by: str
+    reservation_expiry: datetime
+    reason: str | None = None
+    tenant_id: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class StockReservationCreate(BaseModel):
+    inventory_id: uuid.UUID
+    reserved_quantity: int = Field(gt=0)
+    reserved_by: str
+    reservation_expiry: datetime
+    reason: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# StockAdjustment models (expose adjust_stock via API)
+# ---------------------------------------------------------------------------
+
+
+class StockAdjustmentCreate(BaseModel):
+    inventory_id: uuid.UUID
+    delta: int
+    reason: str
+    adjusted_by: str
+
+
+# ---------------------------------------------------------------------------
+# StockReconciliation models
+# ---------------------------------------------------------------------------
+
+
+class ReconciliationStatus(StrEnum):
+    DRAFT = "DRAFT"
+    SUBMITTED = "SUBMITTED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
+class StockReconciliationItem(BaseModel):
+    id: uuid.UUID
+    reconciliation_id: uuid.UUID
+    product_id: uuid.UUID
+    system_quantity: int
+    physical_quantity: int
+    variance: int
+    tenant_id: str
+
+    model_config = {"from_attributes": True}
+
+
+class StockReconciliation(BaseModel):
+    id: uuid.UUID
+    location_id: uuid.UUID
+    reconciliation_date: datetime
+    status: ReconciliationStatus
+    counted_by: str
+    approved_by: str | None = None
+    notes: str | None = None
+    tenant_id: str
+    created_at: datetime
+    items: list[StockReconciliationItem] = []
+
+    model_config = {"from_attributes": True}
+
+
+class StockReconciliationItemCreate(BaseModel):
+    product_id: uuid.UUID
+    system_quantity: int = Field(ge=0)
+    physical_quantity: int = Field(ge=0)
+
+
+class StockReconciliationCreate(BaseModel):
+    location_id: uuid.UUID
+    reconciliation_date: datetime
+    counted_by: str
+    notes: str | None = None
+    items: list[StockReconciliationItemCreate]
+
+
+# ---------------------------------------------------------------------------
+# Resource models (TMF 639 Resource Inventory — individual device/SIM tracking)
+# ---------------------------------------------------------------------------
+
+
+class ResourceType(StrEnum):
+    DEVICE = "DEVICE"
+    SIM = "SIM"
+    ACCESSORY = "ACCESSORY"
+
+
+class ResourceStatusType(StrEnum):
+    AVAILABLE = "AVAILABLE"
+    ALLOCATED = "ALLOCATED"
+    SOLD = "SOLD"
+    DAMAGED = "DAMAGED"
+    SCRAPPED = "SCRAPPED"
+
+
+class ResourceCharacteristic(BaseModel):
+    id: uuid.UUID
+    resource_id: uuid.UUID
+    name: str
+    value: str
+    tenant_id: str
+
+    model_config = {"from_attributes": True}
+
+
+class Resource(BaseModel):
+    id: uuid.UUID
+    resource_name: str
+    resource_type: ResourceType
+    product_id: uuid.UUID
+    inventory_id: uuid.UUID | None = None
+    location_id: uuid.UUID | None = None
+    status: ResourceStatusType
+    batch_reference: str | None = None
+    supplier_reference: str | None = None
+    allocated_to: str | None = None
+    tenant_id: str
+    created_at: datetime
+    characteristics: list[ResourceCharacteristic] = []
+
+    model_config = {"from_attributes": True}
+
+
+class ResourceCharacteristicCreate(BaseModel):
+    name: str
+    value: str
+
+
+class ResourceCreate(BaseModel):
+    resource_name: str
+    resource_type: ResourceType
+    product_id: uuid.UUID
+    inventory_id: uuid.UUID | None = None
+    location_id: uuid.UUID | None = None
+    status: ResourceStatusType = ResourceStatusType.AVAILABLE
+    batch_reference: str | None = None
+    supplier_reference: str | None = None
+    characteristics: list[ResourceCharacteristicCreate] = []

@@ -36,3 +36,25 @@ class StockReservedData(BaseModel):
     reserved_by: str
     reservation_expiry: str
     tenant_id: str
+
+
+class StockReceivedData(BaseModel):
+    grn_id: str
+    grn_number: str
+    supplier_reference: str | None
+    product_id: str
+    location_id: str
+    quantity_received: int
+    received_by: str
+    received_date: str
+    tenant_id: str
+
+
+class ResourceAllocatedData(BaseModel):
+    resource_id: str
+    resource_type: str
+    product_id: str
+    characteristic_name: str
+    characteristic_value: str
+    allocated_to: str | None
+    tenant_id: str

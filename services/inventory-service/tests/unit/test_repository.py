@@ -10,18 +10,29 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.domain.models import (
+    GoodsReceiptCreate,
     InventoryStatus,
     LocationCreate,
     LocationType,
     LocationUpdate,
     ProductInventoryCreate,
     ProductInventoryUpdate,
+    ReconciliationStatus,
+    ResourceCreate,
+    ResourceCharacteristicCreate,
+    ResourceStatusType,
+    ResourceType,
+    StockReservationCreate,
     StockTransferCreate,
     TransferStatus,
 )
 from app.infrastructure.db.repository import (
+    GoodsReceiptRepository,
     InventoryRepository,
     LocationRepository,
+    ReconciliationRepository,
+    ResourceRepository,
+    StockReservationRepository,
     StockTransferRepository,
 )
 from telco_common.db.base import Base
@@ -422,4 +433,318 @@ async def test_transfer_update_status_not_found(db_session):
         transfer_id=uuid.uuid4(), tenant_id=TENANT,
         status=TransferStatus.DELIVERED,
     )
+    assert result is None
+
+
+# ── GoodsReceiptRepository ────────────────────────────────────────────────────
+
+
+async def test_grn_create_and_get(db_session):
+    loc_repo = LocationRepository(db_session)
+    loc = await loc_repo.create(LocationCreate(name="WH", type=LocationType.WAREHOUSE), TENANT)
+    await db_session.commit()
+
+    repo = GoodsReceiptRepository(db_session)
+    now = datetime.now(UTC)
+    data = GoodsReceiptCreate(
+        grn_number="GRN-001",
+        supplier_reference="SAP-PO-001",
+        product_id=uuid.uuid4(),
+        location_id=loc.id,
+        quantity_received=100,
+        received_by="admin",
+        received_date=now,
+    )
+    created = await repo.create(data, TENANT)
+    await db_session.commit()
+
+    found = await repo.get_by_id(created.id, TENANT)
+    assert found is not None
+    assert found.grn_number == "GRN-001"
+    assert found.quantity_received == 100
+    assert found.tenant_id == TENANT
+
+
+async def test_grn_tenant_isolation(db_session):
+    loc_repo = LocationRepository(db_session)
+    loc = await loc_repo.create(LocationCreate(name="WH", type=LocationType.WAREHOUSE), TENANT)
+    await db_session.commit()
+
+    repo = GoodsReceiptRepository(db_session)
+    now = datetime.now(UTC)
+    data = GoodsReceiptCreate(
+        grn_number="GRN-TI",
+        product_id=uuid.uuid4(),
+        location_id=loc.id,
+        quantity_received=10,
+        received_by="admin",
+        received_date=now,
+    )
+    created = await repo.create(data, TENANT)
+    await db_session.commit()
+
+    result = await repo.get_by_id(created.id, OTHER_TENANT)
+    assert result is None
+
+
+async def test_grn_list_with_filters(db_session):
+    loc_repo = LocationRepository(db_session)
+    loc = await loc_repo.create(LocationCreate(name="WH", type=LocationType.WAREHOUSE), TENANT)
+    await db_session.commit()
+
+    repo = GoodsReceiptRepository(db_session)
+    pid = uuid.uuid4()
+    now = datetime.now(UTC)
+    for i in range(3):
+        await repo.create(GoodsReceiptCreate(
+            grn_number=f"GRN-{i}",
+            product_id=pid,
+            location_id=loc.id,
+            quantity_received=10,
+            received_by="admin",
+            received_date=now,
+        ), TENANT)
+    await db_session.commit()
+
+    results = await repo.list_with_filters(TENANT, product_id=pid)
+    assert len(results) == 3
+
+    results_filtered = await repo.list_with_filters(TENANT, product_id=uuid.uuid4())
+    assert results_filtered == []
+
+
+# ── StockReservationRepository ────────────────────────────────────────────────
+
+
+async def _make_inventory_item(db_session, tenant=TENANT, qty=100):
+    loc_repo = LocationRepository(db_session)
+    loc = await loc_repo.create(LocationCreate(name="WH-R", type=LocationType.WAREHOUSE), tenant)
+    inv_repo = InventoryRepository(db_session)
+    item = await inv_repo.create(ProductInventoryCreate(
+        product_id=uuid.uuid4(),
+        product_name="Test Product",
+        quantity=qty,
+        location_id=loc.id,
+        location_type=LocationType.WAREHOUSE,
+    ), tenant)
+    await db_session.commit()
+    return item
+
+
+async def test_reservation_create_and_list(db_session):
+    inv = await _make_inventory_item(db_session)
+
+    repo = StockReservationRepository(db_session)
+    data = StockReservationCreate(
+        inventory_id=inv.id,
+        reserved_quantity=20,
+        reserved_by="order-svc",
+        reservation_expiry=datetime.now(UTC),
+    )
+    created = await repo.create(data, TENANT)
+    await db_session.commit()
+
+    listings = await repo.list_for_inventory(inv.id, TENANT)
+    assert len(listings) == 1
+    assert listings[0].reserved_quantity == 20
+
+
+async def test_reservation_total_reserved(db_session):
+    inv = await _make_inventory_item(db_session)
+    repo = StockReservationRepository(db_session)
+
+    for qty in [10, 15]:
+        await repo.create(StockReservationCreate(
+            inventory_id=inv.id,
+            reserved_quantity=qty,
+            reserved_by="svc",
+            reservation_expiry=datetime.now(UTC),
+        ), TENANT)
+    await db_session.commit()
+
+    total = await repo.total_reserved(inv.id, TENANT)
+    assert total == 25
+
+
+async def test_reservation_delete(db_session):
+    inv = await _make_inventory_item(db_session)
+    repo = StockReservationRepository(db_session)
+    created = await repo.create(StockReservationCreate(
+        inventory_id=inv.id,
+        reserved_quantity=5,
+        reserved_by="svc",
+        reservation_expiry=datetime.now(UTC),
+    ), TENANT)
+    await db_session.commit()
+
+    deleted = await repo.delete(created.id, TENANT)
+    assert deleted is True
+
+    listings = await repo.list_for_inventory(inv.id, TENANT)
+    assert len(listings) == 0
+
+
+async def test_reservation_delete_wrong_tenant(db_session):
+    inv = await _make_inventory_item(db_session)
+    repo = StockReservationRepository(db_session)
+    created = await repo.create(StockReservationCreate(
+        inventory_id=inv.id,
+        reserved_quantity=5,
+        reserved_by="svc",
+        reservation_expiry=datetime.now(UTC),
+    ), TENANT)
+    await db_session.commit()
+
+    deleted = await repo.delete(created.id, OTHER_TENANT)
+    assert deleted is False
+
+
+# ── ResourceRepository ────────────────────────────────────────────────────────
+
+
+async def test_resource_create_and_get(db_session):
+    repo = ResourceRepository(db_session)
+    pid = uuid.uuid4()
+    data = ResourceCreate(
+        resource_name="Samsung A15",
+        resource_type=ResourceType.DEVICE,
+        product_id=pid,
+        characteristics=[ResourceCharacteristicCreate(name="IMEI", value="358240051111110")],
+    )
+    created = await repo.create(data, TENANT)
+    await db_session.commit()
+
+    found = await repo.get_by_id(created.id, TENANT)
+    assert found is not None
+    assert found.resource_name == "Samsung A15"
+    assert len(found.characteristics) == 1
+    assert found.characteristics[0].name == "IMEI"
+
+
+async def test_resource_list_with_filters(db_session):
+    repo = ResourceRepository(db_session)
+    pid = uuid.uuid4()
+    await repo.create(ResourceCreate(
+        resource_name="Device A",
+        resource_type=ResourceType.DEVICE,
+        product_id=pid,
+    ), TENANT)
+    await repo.create(ResourceCreate(
+        resource_name="SIM 1",
+        resource_type=ResourceType.SIM,
+        product_id=pid,
+    ), TENANT)
+    await db_session.commit()
+
+    all_items = await repo.list_with_filters(TENANT, product_id=pid)
+    assert len(all_items) == 2
+
+    sims = await repo.list_with_filters(TENANT, status=ResourceStatusType.AVAILABLE)
+    assert len(sims) == 2
+
+
+async def test_resource_characteristic_lookup(db_session):
+    repo = ResourceRepository(db_session)
+    imei = "358240051111111"
+    await repo.create(ResourceCreate(
+        resource_name="Phone X",
+        resource_type=ResourceType.DEVICE,
+        product_id=uuid.uuid4(),
+        characteristics=[ResourceCharacteristicCreate(name="IMEI", value=imei)],
+    ), TENANT)
+    await db_session.commit()
+
+    results = await repo.list_with_filters(
+        TENANT, characteristic_name="IMEI", characteristic_value=imei,
+    )
+    assert len(results) == 1
+    assert results[0].resource_name == "Phone X"
+
+
+async def test_resource_update_status(db_session):
+    repo = ResourceRepository(db_session)
+    created = await repo.create(ResourceCreate(
+        resource_name="Device B",
+        resource_type=ResourceType.DEVICE,
+        product_id=uuid.uuid4(),
+    ), TENANT)
+    await db_session.commit()
+
+    updated = await repo.update_status(
+        created.id, TENANT, ResourceStatusType.SOLD, allocated_to="TXN-001"
+    )
+    assert updated is not None
+    assert updated.status == "SOLD"
+    assert updated.allocated_to == "TXN-001"
+
+
+async def test_resource_tenant_isolation(db_session):
+    repo = ResourceRepository(db_session)
+    created = await repo.create(ResourceCreate(
+        resource_name="Device C",
+        resource_type=ResourceType.DEVICE,
+        product_id=uuid.uuid4(),
+    ), TENANT)
+    await db_session.commit()
+
+    found = await repo.get_by_id(created.id, OTHER_TENANT)
+    assert found is None
+
+
+# ── ReconciliationRepository ──────────────────────────────────────────────────
+
+
+async def test_reconciliation_create_and_get(db_session):
+    loc_repo = LocationRepository(db_session)
+    loc = await loc_repo.create(LocationCreate(name="WH-Recon", type=LocationType.WAREHOUSE), TENANT)
+    await db_session.commit()
+
+    repo = ReconciliationRepository(db_session)
+    pid = uuid.uuid4()
+    recon = await repo.create(
+        data_dict={
+            "location_id": loc.id,
+            "reconciliation_date": datetime.now(UTC),
+            "counted_by": "manager",
+            "notes": "Monthly check",
+        },
+        items=[{"product_id": pid, "system_quantity": 100, "physical_quantity": 98}],
+        tenant_id=TENANT,
+    )
+    await db_session.commit()
+
+    found = await repo.get_by_id(recon.id, TENANT)
+    assert found is not None
+    assert found.status == "DRAFT"
+    assert len(found.items) == 1
+    assert found.items[0].variance == -2
+
+
+async def test_reconciliation_update_status(db_session):
+    loc_repo = LocationRepository(db_session)
+    loc = await loc_repo.create(LocationCreate(name="WH-RS", type=LocationType.WAREHOUSE), TENANT)
+    await db_session.commit()
+
+    repo = ReconciliationRepository(db_session)
+    recon = await repo.create(
+        data_dict={
+            "location_id": loc.id,
+            "reconciliation_date": datetime.now(UTC),
+            "counted_by": "manager",
+        },
+        items=[],
+        tenant_id=TENANT,
+    )
+    await db_session.commit()
+
+    updated = await repo.update_status(
+        recon.id, TENANT, ReconciliationStatus.SUBMITTED
+    )
+    assert updated is not None
+    assert updated.status == "SUBMITTED"
+
+
+async def test_reconciliation_get_not_found(db_session):
+    repo = ReconciliationRepository(db_session)
+    result = await repo.get_by_id(uuid.uuid4(), TENANT)
     assert result is None
