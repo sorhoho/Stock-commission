@@ -17,8 +17,9 @@ Production-ready, TMForum-compliant microservices platform covering the full end
 │  Domain      │  │  Domain          │  │                    │
 │              │  │                  │  │  commission-rules  │
 │  inventory   │  │  sell-out-svc    │  │  commission-calc   │
-│  party-svc   │  │  sell-in-svc     │  │  payout-service    │
-│  stock-query │  │                  │  │  incentive-svc     │
+│  warehouse   │  │  sell-in-svc     │  │  payout-service    │
+│  product-cat │  │  stock-query     │  │  incentive-svc     │
+│  party-svc   │  │                  │  │                    │
 └──────┬───────┘  └────────┬─────────┘  └────────┬───────────┘
        │                   │                     │
        └───────────────────┴─────────────────────┘
@@ -38,9 +39,11 @@ Production-ready, TMForum-compliant microservices platform covering the full end
 
 | Domain | Service | TMForum API |
 |--------|---------|-------------|
-| Distribution & Inventory | `inventory-service` | TMF637 Product Inventory |
+| Distribution & Inventory | `inventory-service` | TMF637 Product Inventory + TMF639 Resource Inventory |
+| Distribution & Inventory | `warehouse-service` | WMS — bin locations, pick lists, packing, dispatch |
+| Distribution & Inventory | `product-catalog-service` | TMF620 Product Catalog |
 | Distribution & Inventory | `stock-query-service` | TMF637 (CQRS read) |
-| Support Sale Process | `sell-out-service` | TMF699 Sales Management |
+| Support Sale Process | `sell-out-service` | TMF699 Sales Management + POS sessions + returns |
 | Support Sale Process | `sell-in-service` | TMF622 Product Ordering |
 | Sales Performance | `performance-service` | TMF628 Performance Management |
 | Commission/Incentive | `commission-rules-service` | TMF651 Agreement Management |
@@ -63,7 +66,7 @@ Production-ready, TMForum-compliant microservices platform covering the full end
 make infra-up
 ```
 
-This starts: PostgreSQL (per-service DBs), Kafka + Zookeeper, Redis, Keycloak (with demo realm).
+This starts: PostgreSQL (single shared instance, per-service databases), Kafka + Zookeeper, Redis, Keycloak (with demo realm).
 
 ### 2. Start All Services
 
@@ -101,6 +104,8 @@ make seed
 | commission-rules-service | http://localhost:8007/docs |
 | commission-calculation-service | http://localhost:8008/docs |
 | payout-service | http://localhost:8009/docs |
+| warehouse-service | http://localhost:8012/docs |
+| product-catalog-service | http://localhost:8013/docs |
 
 ### Demo Login Credentials
 
@@ -114,7 +119,8 @@ make seed
 
 ```
 1. POST /api/v1/salesManagement/saleTransaction
-   └─► sell-out-service persists transaction
+   ├─► validates stock via stock-query-service (422 if insufficient)
+   └─► sell-out-service persists transaction (with optional pos_session_id)
    └─► publishes: telco.sales.sellout.completed
 
 2. commission-calculation-service (Kafka consumer)
@@ -150,14 +156,63 @@ make seed
    └─► sends payout confirmation to dealer
 ```
 
+## Warehouse Management Flow
+
+```
+1. POST /api/v1/warehouseManagement/binLocation
+   └─► register zone / aisle / rack / bin within a warehouse location
+
+2. POST /api/v1/warehouseManagement/pickList
+   └─► create pick list for a sell-out or replenishment order
+
+3. POST /api/v1/warehouseManagement/pickList/{id}/assign
+   └─► assign pick list to a warehouse worker
+
+4. POST /api/v1/warehouseManagement/pickList/{id}/complete
+   └─► confirm picked quantities per item (supports short-picks)
+   └─► publishes: telco.warehouse.picklist.completed
+
+5. POST /api/v1/warehouseManagement/packingSlip
+   └─► create packing slip from completed pick list
+
+6. POST /api/v1/warehouseManagement/packingSlip/{id}/dispatch
+   └─► record shipping carrier + tracking number
+   └─► publishes: telco.warehouse.dispatch.created
+
+7. SALES_SELLIN_DELIVERED (Kafka consumer)
+   └─► auto-creates goods receipt in inventory-service for delivered sell-in items
+```
+
+## Retail POS Flow
+
+```
+1. POST /api/v1/salesManagement/posSession
+   └─► open shift: terminal_id, opened_by, opening_cash
+
+2. POST /api/v1/salesManagement/saleTransaction (with pos_session_id)
+   └─► pre-sale stock check → 422 if stock insufficient
+   └─► records payment_method + payment_reference
+
+3. POST /api/v1/salesManagement/returnTransaction
+   └─► initiate return against an original transaction
+
+4. POST /api/v1/salesManagement/returnTransaction/{id}/approve
+   └─► approve return → publishes: telco.sales.return.processed
+
+5. POST /api/v1/salesManagement/posSession/{id}/close
+   └─► close shift: closing_cash, reconcile total_transactions / total_amount
+```
+
 ## Project Structure
 
 ```
 Stock-commission/
 ├── services/
-│   ├── inventory-service/        # TMF637 — stock-on-hand, transfers
+│   ├── inventory-service/        # TMF637 + TMF639 — stock, transfers, GRN, serial tracking
+│   ├── warehouse-service/        # WMS — bin locations, pick lists, packing, dispatch
+│   ├── product-catalog-service/  # TMF620 — product CRUD, barcode POS lookup
 │   ├── party-service/            # TMF632 — dealers, distributors
-│   ├── sell-out-service/         # TMF699 — POS transactions
+│   ├── sell-out-service/         # TMF699 — POS transactions, sessions, returns
 │   ├── sell-in-service/          # TMF622 — distributor orders
 │   ├── stock-query-service/      # CQRS read model (Redis)
 │   ├── performance-service/      # TMF628 — KPI targets & measurements
@@ -178,7 +233,7 @@ Stock-commission/
 │   └── observability/            # Prometheus, Grafana, Tempo, Loki
 │
 ├── frontend/                     # React 18 + TypeScript + Vite
-├── scripts/                      # Kafka topics, seed data
+├── scripts/                      # Kafka topics, seed data, DB init
 ├── docker-compose.yml            # Full local stack
 ├── docker-compose.infra.yml      # Infrastructure only
 └── Makefile                      # Developer commands
@@ -192,6 +247,7 @@ make test
 
 # Specific service
 make test-sell-out-service
+make test-warehouse-service
 
 # Commission rule evaluator (pure function, no dependencies)
 make test-rules
@@ -213,8 +269,24 @@ make generate-openapi
 
 # Tail logs
 make logs
-make logs-commission-calculation-service
+make logs-warehouse-service
+make logs-sell-out-service
 ```
+
+## Kafka Topics
+
+| Topic | Publisher | Consumers |
+|-------|-----------|-----------|
+| `telco.sales.sellout.completed` | sell-out-service | commission-calc, inventory, performance, audit |
+| `telco.sales.return.processed` | sell-out-service | inventory, audit |
+| `telco.inventory.stock.transferred` | inventory-service | audit |
+| `telco.inventory.stock.received` | inventory-service | audit |
+| `telco.warehouse.picklist.completed` | warehouse-service | audit |
+| `telco.warehouse.dispatch.created` | warehouse-service | audit, notification |
+| `telco.commission.event.calculated` | commission-calc | payout, audit |
+| `telco.commission.statement.confirmed` | commission-calc | payout |
+| `telco.payout.request.completed` | payout-service | notification |
+| `telco.sales.sellin.delivered` | sell-in-service | warehouse (auto-GRN) |
 
 ## Production Deployment
 
