@@ -58,6 +58,11 @@ class Topics:
     SALES_SELLOUT_REVERSED = "telco.sales.sellout.reversed"
     SALES_SELLIN_ORDERED = "telco.sales.sellin.ordered"
     SALES_SELLIN_DELIVERED = "telco.sales.sellin.delivered"
+    SALES_RETURN_PROCESSED = "telco.sales.return.processed"
+
+    WAREHOUSE_PICKLIST_CREATED = "telco.warehouse.picklist.created"
+    WAREHOUSE_PICKLIST_COMPLETED = "telco.warehouse.picklist.completed"
+    WAREHOUSE_DISPATCH_CREATED = "telco.warehouse.dispatch.created"
 
     COMMISSION_EVENT_CALCULATED = "telco.commission.event.calculated"
     COMMISSION_STATEMENT_CONFIRMED = "telco.commission.statement.confirmed"

@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.models import (
+    PosSession,
+    PosSessionCreate,
+    PosSessionStatus,
+    ReturnCondition,
+    ReturnStatus,
+    ReturnTransaction,
+    ReturnTransactionCreate,
+    ReturnTransactionItem,
     SaleStatus,
     SaleTransaction,
     SaleTransactionCreate,
@@ -46,6 +54,9 @@ def _txn_to_domain(db_txn: db_models.SaleTransaction) -> SaleTransaction:
         total_amount=db_txn.total_amount,
         currency=db_txn.currency,
         status=db_txn.status,  # type: ignore[arg-type]
+        pos_session_id=db_txn.pos_session_id,
+        payment_method=db_txn.payment_method,
+        payment_reference=db_txn.payment_reference,
         tenant_id=db_txn.tenant_id,
         created_at=db_txn.created_at,
         updated_at=db_txn.updated_at,
@@ -73,6 +84,9 @@ class SaleTransactionRepository:
             total_amount=total_amount,
             currency="USD",
             status=SaleStatus.COMPLETED.value,
+            pos_session_id=transaction_data.pos_session_id,
+            payment_method=transaction_data.payment_method.value if transaction_data.payment_method else None,
+            payment_reference=transaction_data.payment_reference,
             tenant_id=tenant_id,
         )
         self._session.add(db_txn)
@@ -237,3 +251,144 @@ class SaleTransactionRepository:
             total_amount=round(total_amount, 2),
             currency="USD",
         )
+
+
+def _session_to_domain(db_s: db_models.PosSession) -> PosSession:
+    return PosSession(
+        id=db_s.id,
+        terminal_id=db_s.terminal_id,
+        dealer_party_id=db_s.dealer_party_id,
+        opened_by=db_s.opened_by,
+        opened_at=db_s.opened_at,
+        closed_at=db_s.closed_at,
+        status=db_s.status,  # type: ignore[arg-type]
+        opening_cash=db_s.opening_cash,
+        closing_cash=db_s.closing_cash,
+        total_transactions=db_s.total_transactions,
+        total_amount=db_s.total_amount,
+        tenant_id=db_s.tenant_id,
+        created_at=db_s.created_at,
+        updated_at=db_s.updated_at,
+    )
+
+
+class PosSessionRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create(self, data: PosSessionCreate, tenant_id: str) -> PosSession:
+        db_s = db_models.PosSession(
+            terminal_id=data.terminal_id,
+            dealer_party_id=data.dealer_party_id,
+            opened_by=data.opened_by,
+            opened_at=datetime.now(UTC).isoformat(),
+            status=PosSessionStatus.OPEN.value,
+            opening_cash=data.opening_cash,
+            tenant_id=tenant_id,
+        )
+        self._session.add(db_s)
+        await self._session.flush()
+        await self._session.refresh(db_s)
+        return _session_to_domain(db_s)
+
+    async def get_by_id(self, session_id: uuid.UUID, tenant_id: str) -> PosSession | None:
+        result = await self._session.execute(
+            select(db_models.PosSession).where(
+                db_models.PosSession.id == session_id,
+                db_models.PosSession.tenant_id == tenant_id,
+            )
+        )
+        db_s = result.scalar_one_or_none()
+        return _session_to_domain(db_s) if db_s else None
+
+    async def close(self, session_id: uuid.UUID, tenant_id: str, closing_cash: float) -> PosSession | None:
+        db_s = await self._session.get(db_models.PosSession, session_id)
+        if db_s is None or db_s.tenant_id != tenant_id:
+            return None
+        db_s.status = PosSessionStatus.CLOSED.value
+        db_s.closed_at = datetime.now(UTC).isoformat()
+        db_s.closing_cash = closing_cash
+        await self._session.flush()
+        await self._session.refresh(db_s)
+        return _session_to_domain(db_s)
+
+
+def _return_item_to_domain(db_item: db_models.ReturnTransactionItem) -> ReturnTransactionItem:
+    return ReturnTransactionItem(
+        id=db_item.id,
+        return_transaction_id=db_item.return_transaction_id,
+        product_id=db_item.product_id,
+        quantity=db_item.quantity,
+        serial_numbers=db_item.serial_numbers or [],
+        condition=db_item.condition,  # type: ignore[arg-type]
+        tenant_id=db_item.tenant_id,
+    )
+
+
+def _return_to_domain(db_r: db_models.ReturnTransaction) -> ReturnTransaction:
+    return ReturnTransaction(
+        id=db_r.id,
+        return_number=db_r.return_number,
+        original_transaction_id=db_r.original_transaction_id,
+        return_reason=db_r.return_reason,
+        status=db_r.status,  # type: ignore[arg-type]
+        returned_by=db_r.returned_by,
+        returned_at=db_r.returned_at,
+        items=[_return_item_to_domain(i) for i in (db_r.items or [])],
+        tenant_id=db_r.tenant_id,
+        created_at=db_r.created_at,
+        updated_at=db_r.updated_at,
+    )
+
+
+class ReturnRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create(self, data: ReturnTransactionCreate, tenant_id: str) -> ReturnTransaction:
+        return_number = f"RET-{datetime.now(UTC).strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}"
+        db_r = db_models.ReturnTransaction(
+            return_number=return_number,
+            original_transaction_id=data.original_transaction_id,
+            return_reason=data.return_reason,
+            status=ReturnStatus.PENDING.value,
+            returned_by=data.returned_by,
+            returned_at=datetime.now(UTC).isoformat(),
+            tenant_id=tenant_id,
+        )
+        self._session.add(db_r)
+        await self._session.flush()
+        for item in data.items:
+            db_item = db_models.ReturnTransactionItem(
+                return_transaction_id=db_r.id,
+                product_id=item.product_id,
+                quantity=item.quantity,
+                serial_numbers=item.serial_numbers,
+                condition=item.condition.value,
+                tenant_id=tenant_id,
+            )
+            self._session.add(db_item)
+        await self._session.flush()
+        await self._session.refresh(db_r)
+        return _return_to_domain(db_r)
+
+    async def get_by_id(self, return_id: uuid.UUID, tenant_id: str) -> ReturnTransaction | None:
+        result = await self._session.execute(
+            select(db_models.ReturnTransaction).where(
+                db_models.ReturnTransaction.id == return_id,
+                db_models.ReturnTransaction.tenant_id == tenant_id,
+            )
+        )
+        db_r = result.scalar_one_or_none()
+        return _return_to_domain(db_r) if db_r else None
+
+    async def update_status(
+        self, return_id: uuid.UUID, tenant_id: str, status: ReturnStatus
+    ) -> ReturnTransaction | None:
+        db_r = await self._session.get(db_models.ReturnTransaction, return_id)
+        if db_r is None or db_r.tenant_id != tenant_id:
+            return None
+        db_r.status = status.value
+        await self._session.flush()
+        await self._session.refresh(db_r)
+        return _return_to_domain(db_r)

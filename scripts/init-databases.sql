@@ -12,3 +12,5 @@ CREATE DATABASE commission_rules;
 CREATE DATABASE commission_calc;
 CREATE DATABASE payout;
 CREATE DATABASE audit;
+CREATE DATABASE warehouse;
+CREATE DATABASE product_catalog;

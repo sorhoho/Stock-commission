@@ -267,6 +267,37 @@ services:
       kafka:
         condition: service_healthy
 
+  warehouse-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: services/warehouse-service/Dockerfile
+    ports: ["8012:8000"]
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/warehouse"
+      SERVICE_NAME: "warehouse-service"
+      INVENTORY_SERVICE_URL: "http://inventory-service:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      inventory-service:
+        condition: service_started
+
+  product-catalog-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: services/product-catalog-service/Dockerfile
+    ports: ["8013:8000"]
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/product_catalog"
+      SERVICE_NAME: "product-catalog-service"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   frontend:
     <<: *service-defaults
     build:

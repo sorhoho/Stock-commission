@@ -35,5 +35,8 @@ class Settings(BaseSettings):
     # CORS
     allowed_origins: list[str] = ["*"]
 
+    # Stock availability check before sale
+    stock_query_service_url: str = "http://stock-query-service:8004"
+
 
 settings = Settings()

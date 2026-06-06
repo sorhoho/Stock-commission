@@ -10,6 +10,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.dependencies import (
     get_correlation_id,
     get_kafka_producer,
@@ -68,6 +69,7 @@ async def create_transaction(
         correlation_id=correlation_id,
         repo=repo,
         kafka_producer=kafka_producer,
+        stock_query_url=settings.stock_query_service_url,
     )
 
 

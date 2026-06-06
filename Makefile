@@ -8,7 +8,7 @@ GREEN := $(shell tput setaf 2)
 SERVICES = inventory-service party-service sell-out-service sell-in-service \
            stock-query-service performance-service commission-rules-service \
            commission-calculation-service payout-service notification-service \
-           audit-service
+           audit-service warehouse-service product-catalog-service
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -50,7 +50,7 @@ logs-%: ## Tail logs for a specific service: make logs-sell-out-service
 migrate: ## Run Alembic migrations for all services
 	@for svc in inventory-service party-service sell-out-service sell-in-service \
 	            performance-service commission-rules-service commission-calculation-service \
-	            payout-service audit-service; do \
+	            payout-service audit-service warehouse-service product-catalog-service; do \
 		echo "$(BOLD)Migrating $$svc...$(RESET)"; \
 		docker compose run --rm $$svc alembic upgrade head; \
 	done

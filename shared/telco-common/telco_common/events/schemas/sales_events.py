@@ -53,3 +53,13 @@ class SellInDeliveredData(BaseModel):
     delivered_items: list[dict]
     destination_location_id: str
     tenant_id: str
+
+
+class SalesReturnProcessedData(BaseModel):
+    return_id: str
+    return_number: str
+    original_transaction_id: str | None
+    return_reason: str
+    returned_by: str
+    returned_at: str
+    tenant_id: str
