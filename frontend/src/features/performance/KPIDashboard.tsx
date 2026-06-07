@@ -26,8 +26,8 @@ export const KPIDashboard: React.FC<Props> = ({
     period,
   });
 
-  if (isLoading) return <div>Loading KPI dashboard...</div>;
-  if (isError || !data) return <div>Failed to load performance data.</div>;
+  if (isLoading) return <div className="page-container"><h2>Performance Dashboard — {period}</h2><div>Loading KPI dashboard...</div></div>;
+  if (isError || !data) return <div className="page-container"><h2>Performance Dashboard — {period}</h2><div className="alert alert--error">API unavailable — check backend</div></div>;
 
   const chartData = Object.entries(data.summary).map(([kpi, values]) => ({
     kpi,

@@ -34,13 +34,13 @@ export const InventoryPage: React.FC = () => {
     setTransfer({ product_id: "", source_location_id: "", destination_location_id: "", quantity: 1 });
   };
 
-  if (isLoading) return <div className="page-container">Loading inventory...</div>;
-  if (isError) return <div className="page-container">Failed to load inventory.</div>;
+  if (isLoading) return <div className="page-container"><h2>Product Inventory</h2><div>Loading inventory...</div></div>;
 
   return (
     <div className="page-container">
       <div className="page-header">
         <h2>Product Inventory</h2>
+        {isError && <span className="alert alert--error" style={{ marginBottom: 0 }}>API unavailable — check backend</span>}
         <button className="btn-primary" onClick={() => setShowTransfer((v) => !v)}>
           {showTransfer ? "Cancel" : "Transfer Stock"}
         </button>

@@ -18,8 +18,8 @@ export const CommissionStatement: React.FC<Props> = ({ partyId }) => {
   const { data: statements, isLoading, isError } = useListCommissionStatementsQuery({ party_id: partyId });
   const [confirmStatement, { isLoading: isConfirming }] = useConfirmStatementMutation();
 
-  if (isLoading) return <div>Loading commission statements...</div>;
-  if (isError) return <div>Failed to load commission statements.</div>;
+  if (isLoading) return <div className="page-container"><h2>Commission Statements</h2><div>Loading...</div></div>;
+  if (isError) return <div className="page-container"><h2>Commission Statements</h2><div className="alert alert--error">API unavailable — check backend</div></div>;
 
   return (
     <div className="commission-statements">
