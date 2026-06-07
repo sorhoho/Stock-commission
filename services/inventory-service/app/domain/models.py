@@ -277,9 +277,68 @@ class StockReconciliationCreate(BaseModel):
 
 
 class ResourceType(StrEnum):
-    DEVICE = "DEVICE"
-    SIM = "SIM"
-    ACCESSORY = "ACCESSORY"
+    HANDSET = "HANDSET"                   # smartphones, feature phones
+    TABLET = "TABLET"                     # tablets
+    SIM_CARD = "SIM_CARD"                 # physical SIM (standard, micro, nano)
+    ESIM = "ESIM"                         # embedded / downloadable SIM profile
+    IOT_DEVICE = "IOT_DEVICE"            # smart meters, sensors, connected devices
+    CCTV = "CCTV"                         # cameras, DVR/NVR recorders
+    SET_TOP_BOX = "SET_TOP_BOX"           # satellite/cable TV decoders
+    OTT_TV_BOX = "OTT_TV_BOX"            # Android TV / streaming boxes
+    CASH_CARD = "CASH_CARD"               # airtime / data vouchers (serialised batches)
+    MOBILE_BROADBAND = "MOBILE_BROADBAND" # MiFi / 4G–5G dongles
+    FIXED_CPE = "FIXED_CPE"              # home routers, ONT, ADSL/fibre modems
+    ACCESSORY = "ACCESSORY"              # cases, chargers, earphones, cables
+
+
+class CharacteristicName:
+    """Standard resource-characteristic name constants.
+
+    Used as the `name` field in ResourceCharacteristic to ensure consistent
+    lookups across services (e.g. IMEI scan, ICCID import, serial search).
+    """
+
+    # Handset / tablet
+    IMEI = "IMEI"
+    IMEI2 = "IMEI2"           # dual-SIM second IMEI
+    MAC_ADDRESS = "MAC_ADDRESS"
+    COLOR = "COLOR"
+    STORAGE_GB = "STORAGE_GB"
+    RAM_GB = "RAM_GB"
+    OS_VERSION = "OS_VERSION"
+
+    # SIM card / eSIM
+    ICCID = "ICCID"           # unique SIM identifier
+    MSISDN = "MSISDN"         # phone number assigned to SIM
+    IMSI = "IMSI"             # international mobile subscriber identity
+    SIM_TYPE = "SIM_TYPE"     # STANDARD | MICRO | NANO | ESIM
+    PIN1 = "PIN1"
+    PUK1 = "PUK1"
+    APN = "APN"               # default APN for data SIMs
+
+    # IoT / CCTV
+    SERIAL_NUMBER = "SERIAL_NUMBER"
+    FIRMWARE_VERSION = "FIRMWARE_VERSION"
+    IP_ADDRESS = "IP_ADDRESS"
+    MAC_LAN = "MAC_LAN"
+    MAC_WIFI = "MAC_WIFI"
+    RESOLUTION = "RESOLUTION"           # e.g. "4MP", "8MP"
+    SMART_CARD_NUMBER = "SMART_CARD_NUMBER"  # conditional-access card in STB
+
+    # Set-top box / OTT box
+    CONDITIONAL_ACCESS_ID = "CONDITIONAL_ACCESS_ID"
+    DECODER_NUMBER = "DECODER_NUMBER"
+
+    # Cash card / voucher
+    VOUCHER_CODE = "VOUCHER_CODE"
+    DENOMINATION = "DENOMINATION"
+    EXPIRY_DATE = "EXPIRY_DATE"
+    BATCH_NUMBER = "BATCH_NUMBER"
+
+    # Mobile broadband / CPE
+    PPPoE_USERNAME = "PPPoE_USERNAME"
+    WIFI_SSID = "WIFI_SSID"
+    WIFI_PASSWORD = "WIFI_PASSWORD"
 
 
 class ResourceStatusType(StrEnum):

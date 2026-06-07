@@ -3,62 +3,66 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.models import Product, ProductCreate
+from app.domain.models import Product, ProductCreate, ProductType
 from app.infrastructure.db.repository import ProductRepository
 from app.infrastructure.db.session import get_db_session
 from telco_common.exceptions import NotFoundException
-from telco_common.middleware.tenant_middleware import get_tenant_id_from_request
 
 router = APIRouter(prefix="/product", tags=["Product Catalog"])
 
-DbSession = Annotated[AsyncSession, Depends(get_db_session)]
-
-
-def _get_tenant(request) -> str:
-    from fastapi import Request
-    return request.state.tenant_id
-
-
-from fastapi import Request
+DbSession = Depends(get_db_session)
 
 
 @router.post("/", response_model=Product, status_code=status.HTTP_201_CREATED)
-async def create_product(body: ProductCreate, request: Request, db: DbSession) -> Product:
-    """Register a product in the catalog."""
-    repo = ProductRepository(db)
-    return await repo.create(body, request.state.tenant_id)
+async def create_product(body: ProductCreate, request: Request, db: AsyncSession = DbSession) -> Product:
+    """Register a new product in the catalog."""
+    return await ProductRepository(db).create(body, request.state.tenant_id)
 
 
 @router.get("/{product_id}", response_model=Product)
-async def get_product(product_id: uuid.UUID, request: Request, db: DbSession) -> Product:
+async def get_product(product_id: uuid.UUID, request: Request, db: AsyncSession = DbSession) -> Product:
     """Get a product by ID."""
-    repo = ProductRepository(db)
-    product = await repo.get_by_id(product_id, request.state.tenant_id)
+    product = await ProductRepository(db).get_by_id(product_id, request.state.tenant_id)
     if product is None:
         raise NotFoundException("Product", str(product_id))
     return product
 
 
 @router.get("/", response_model=list[Product])
-async def search_products(
+async def list_products(
     request: Request,
-    db: DbSession,
-    barcode: str | None = Query(default=None, description="Exact barcode lookup (POS scan)"),
-    search: str | None = Query(default=None, description="Name search"),
+    db: AsyncSession = DbSession,
+    barcode: str | None = Query(default=None, description="Exact barcode — for POS scan"),
+    product_type: ProductType | None = Query(default=None, description="Filter by product type"),
+    category: str | None = Query(default=None, description="Filter by commercial category"),
+    brand: str | None = Query(default=None, description="Filter by brand (partial match)"),
+    search: str | None = Query(default=None, description="Name substring search"),
     page: int = Query(default=1, ge=1),
     size: int = Query(default=20, ge=1, le=100),
 ) -> list[Product]:
-    """Search products by barcode (POS scan) or name substring."""
-    tenant_id = request.state.tenant_id
+    """
+    List / search products.
+
+    - `barcode` — exact POS scan lookup; returns at most one result.
+    - `product_type` — filter by HANDSET, SIM_CARD, SET_TOP_BOX, etc.
+    - `category` — filter by commercial category (PREPAID, TV, DATA, etc.).
+    - `brand` / `search` — partial-match filters.
+    """
     repo = ProductRepository(db)
+    tenant_id = request.state.tenant_id
     if barcode:
         product = await repo.get_by_barcode(barcode, tenant_id)
         return [product] if product else []
-    if search:
-        return await repo.search_by_name(search, tenant_id, page=page, size=size)
-    return []
+    return await repo.list_products(
+        tenant_id,
+        product_type=product_type,
+        category=category,
+        brand=brand,
+        search=search,
+        page=page,
+        size=size,
+    )
