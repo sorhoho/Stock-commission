@@ -1,0 +1,55 @@
+# Project-local RTK filters — commit this file with your repo.
+# Filters here override user-global and built-in filters.
+# Docs: https://github.com/rtk-ai/rtk#custom-filters
+schema_version = 1
+
+# docker compose up/down — strip progress spam, keep status lines
+[filters.docker-compose]
+description = "Compact docker compose output"
+match_command = "^docker\\s+compose"
+strip_ansi = true
+strip_lines_matching = [
+  "^\\s*$",
+  "Pulling from",
+  "Pull complete",
+  "Digest: sha256",
+  "Status: Downloaded",
+  "^\\s+\\d+\\.",          # layer IDs
+]
+max_lines = 60
+on_empty = "docker compose: ok"
+
+# make targets — strip recipe echo lines, keep actual output
+[filters.make]
+description = "Compact make output"
+match_command = "^make\\s"
+strip_ansi = true
+strip_lines_matching = [
+  "^make\\[",              # recursive make noise
+  "^Entering directory",
+  "^Leaving directory",
+]
+max_lines = 100
+
+# alembic migrations — strip boilerplate, keep revision info
+[filters.alembic]
+description = "Compact alembic output"
+match_command = "^alembic"
+strip_ansi = true
+strip_lines_matching = [
+  "^\\s*$",
+  "^INFO\\s+\\[alembic\\.runtime\\.migration\\]",
+]
+max_lines = 30
+on_empty = "alembic: ok"
+
+# vite build — strip asset listing noise
+[filters.vite]
+description = "Compact vite build output"
+match_command = "^(vite build|vite preview|npx vite|pnpm vite)"
+strip_ansi = true
+strip_lines_matching = [
+  "^\\s+\\S+\\s+\\d+\\.\\d+ k",   # individual asset sizes
+  "^\\s*$",
+]
+max_lines = 40
