@@ -418,7 +418,7 @@ def _make_resource(**overrides) -> Resource:
     defaults = dict(
         id=uuid.uuid4(),
         resource_name="Samsung Galaxy A15",
-        resource_type=ResourceType.DEVICE,
+        resource_type=ResourceType.HANDSET,
         product_id=uuid.uuid4(),
         status=ResourceStatusType.AVAILABLE,
         tenant_id=TENANT,
@@ -631,7 +631,7 @@ async def test_register_resources():
     mock_db = AsyncMock()
     body = [ResourceCreate(
         resource_name="Samsung A15",
-        resource_type=ResourceType.DEVICE,
+        resource_type=ResourceType.HANDSET,
         product_id=r.product_id,
         characteristics=[],
     )]

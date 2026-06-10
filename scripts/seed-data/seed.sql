@@ -37,7 +37,7 @@ VALUES
   ('cccccccc-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', '*',       NULL, 11, 50,   'PERCENTAGE', 0.12, 'USD', '{}', 20, false, 'tenant-demo'),
   ('cccccccc-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000001', '*',       NULL, 51, NULL, 'PERCENTAGE', 0.15, 'USD', '{}', 30, false, 'tenant-demo'),
   -- SIM cards — lower margin, flat fee per unit
-  ('cccccccc-0000-0000-0000-000000000004', 'aaaaaaaa-0000-0000-0000-000000000001', 'PREPAID', NULL, 1,  NULL, 'FLAT',       0.50, 'USD', '{}', 5,  false, 'tenant-demo'),
+  ('cccccccc-0000-0000-0000-000000000004', 'aaaaaaaa-0000-0000-0000-000000000001', 'PREPAID', NULL, 1,  NULL, 'FLAT_AMOUNT', 0.50, 'USD', '{}', 5,  false, 'tenant-demo'),
   -- Cash / recharge cards — not eligible (handled by commission_eligible=false on product)
   -- Handset specialist scheme
   ('cccccccc-0000-0000-0000-000000000005', 'aaaaaaaa-0000-0000-0000-000000000002', 'HANDSET', NULL, 1,  20,   'PERCENTAGE', 0.10, 'USD', '{}', 10, false, 'tenant-demo'),
@@ -65,90 +65,88 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Stock-on-hand at Central Warehouse (product IDs match product_catalog seed below)
-INSERT INTO product_inventory (id, product_id, location_id, location_type, quantity, status, tenant_id)
+INSERT INTO product_inventory (id, product_id, product_name, location_id, location_type, quantity, status, tenant_id)
 VALUES
   -- Handsets
-  ('eeeeeeee-0000-0000-0000-000000000001', 'f1000001-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 50,  'AVAILABLE', 'tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000002', 'f1000002-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 80,  'AVAILABLE', 'tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000003', 'f1000003-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 120, 'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000001', 'f1000001-0000-0000-0000-000000000000', 'Apple iPhone 16 Pro 256GB Black',       'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 50,    'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000002', 'f1000002-0000-0000-0000-000000000000', 'Samsung Galaxy S25 Ultra 512GB Silver', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 80,    'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000003', 'f1000003-0000-0000-0000-000000000000', 'Huawei Pura 70 Pro 128GB Green',        'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 120,   'AVAILABLE', 'tenant-demo'),
   -- SIM cards
-  ('eeeeeeee-0000-0000-0000-000000000010', 'f2000001-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 5000,'AVAILABLE', 'tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000011', 'f2000002-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 3000,'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000010', 'f2000001-0000-0000-0000-000000000000', 'Prepaid SIM Starter Pack',              'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 5000,  'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000011', 'f2000002-0000-0000-0000-000000000000', 'Data SIM 4G/LTE Pack',                  'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 3000,  'AVAILABLE', 'tenant-demo'),
   -- Set-top boxes
-  ('eeeeeeee-0000-0000-0000-000000000020', 'f3000001-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 200, 'AVAILABLE', 'tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000021', 'f3000002-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 150, 'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000020', 'f3000001-0000-0000-0000-000000000000', 'HD Satellite Decoder',                  'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 200,   'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000021', 'f3000002-0000-0000-0000-000000000000', '4K UHD Cable Decoder',                  'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 150,   'AVAILABLE', 'tenant-demo'),
   -- OTT TV boxes
-  ('eeeeeeee-0000-0000-0000-000000000025', 'f4000001-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 300, 'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000025', 'f4000001-0000-0000-0000-000000000000', 'Android TV Box 4K',                     'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 300,   'AVAILABLE', 'tenant-demo'),
   -- Cash / recharge cards
-  ('eeeeeeee-0000-0000-0000-000000000030', 'f5000001-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 10000,'AVAILABLE','tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000031', 'f5000002-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 5000, 'AVAILABLE','tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000032', 'f5000003-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 2000, 'AVAILABLE','tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000030', 'f5000001-0000-0000-0000-000000000000', 'Airtime Voucher $5',                    'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 10000, 'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000031', 'f5000002-0000-0000-0000-000000000000', 'Airtime Voucher $10',                   'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 5000,  'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000032', 'f5000003-0000-0000-0000-000000000000', 'Airtime Voucher $20',                   'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 2000,  'AVAILABLE', 'tenant-demo'),
   -- Mobile broadband / MiFi
-  ('eeeeeeee-0000-0000-0000-000000000040', 'f6000001-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 80,  'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000040', 'f6000001-0000-0000-0000-000000000000', 'Huawei 5G Mobile WiFi (MiFi)',          'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 80,    'AVAILABLE', 'tenant-demo'),
   -- CCTV
-  ('eeeeeeee-0000-0000-0000-000000000050', 'f7000001-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 60,  'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000050', 'f7000001-0000-0000-0000-000000000000', 'IP Camera 4MP PoE Outdoor',             'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 60,    'AVAILABLE', 'tenant-demo'),
   -- IoT
-  ('eeeeeeee-0000-0000-0000-000000000060', 'f8000001-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 200, 'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000060', 'f8000001-0000-0000-0000-000000000000', 'Smart Energy Meter (NB-IoT)',           'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 200,   'AVAILABLE', 'tenant-demo'),
   -- Fixed CPE / router
-  ('eeeeeeee-0000-0000-0000-000000000070', 'f9000001-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 100, 'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000070', 'f9000001-0000-0000-0000-000000000000', 'Fibre ONT (GPON)',                      'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 100,   'AVAILABLE', 'tenant-demo'),
   -- Tablet
-  ('eeeeeeee-0000-0000-0000-000000000080', 'fa000001-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 40,  'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000080', 'fa000001-0000-0000-0000-000000000000', 'Samsung Galaxy Tab S9 128GB WiFi',      'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 40,    'AVAILABLE', 'tenant-demo'),
   -- Accessories
-  ('eeeeeeee-0000-0000-0000-000000000090', 'fb000001-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 500, 'AVAILABLE', 'tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000091', 'fb000002-0000-0000-0000-000000000000', 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 300, 'AVAILABLE', 'tenant-demo')
+  ('eeeeeeee-0000-0000-0000-000000000090', 'fb000001-0000-0000-0000-000000000000', 'GaN Charger 65W USB-C',                 'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 500,   'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000091', 'fb000002-0000-0000-0000-000000000000', 'Universal Phone Case (6.5")',           'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 300,   'AVAILABLE', 'tenant-demo')
 ON CONFLICT (id) DO NOTHING;
 
 -- Sample serialised resources: 3 handsets with IMEI, 5 SIM cards with ICCID, 2 STBs
 INSERT INTO resource (id, resource_name, resource_type, product_id, inventory_id, location_id, status, batch_reference, supplier_reference, tenant_id)
 VALUES
   -- iPhone 16 Pro units
-  ('aaaaaaaa-res0-0000-0000-000000000001', 'iPhone 16 Pro 256GB Black #1',   'HANDSET', 'f1000001-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'BATCH-2026-01', 'APPLE-PO-001', 'tenant-demo'),
-  ('aaaaaaaa-res0-0000-0000-000000000002', 'iPhone 16 Pro 256GB Black #2',   'HANDSET', 'f1000001-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'BATCH-2026-01', 'APPLE-PO-001', 'tenant-demo'),
+  ('aaaaaaaa-a0a0-0000-0000-000000000001', 'iPhone 16 Pro 256GB Black #1',   'HANDSET', 'f1000001-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'BATCH-2026-01', 'APPLE-PO-001', 'tenant-demo'),
+  ('aaaaaaaa-a0a0-0000-0000-000000000002', 'iPhone 16 Pro 256GB Black #2',   'HANDSET', 'f1000001-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'BATCH-2026-01', 'APPLE-PO-001', 'tenant-demo'),
   -- Samsung Galaxy S25 Ultra
-  ('aaaaaaaa-res0-0000-0000-000000000003', 'Samsung Galaxy S25 Ultra #1',    'HANDSET', 'f1000002-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000002', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'BATCH-2026-01', 'SAMSG-PO-001', 'tenant-demo'),
+  ('aaaaaaaa-a0a0-0000-0000-000000000003', 'Samsung Galaxy S25 Ultra #1',    'HANDSET', 'f1000002-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000002', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'BATCH-2026-01', 'SAMSG-PO-001', 'tenant-demo'),
   -- SIM cards
-  ('aaaaaaaa-res0-0000-0000-000000000010', 'Prepaid SIM #001',               'SIM_CARD', 'f2000001-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000010', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'SIM-BATCH-A', NULL, 'tenant-demo'),
-  ('aaaaaaaa-res0-0000-0000-000000000011', 'Prepaid SIM #002',               'SIM_CARD', 'f2000001-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000010', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'SIM-BATCH-A', NULL, 'tenant-demo'),
-  ('aaaaaaaa-res0-0000-0000-000000000012', 'Prepaid Data SIM #001',          'SIM_CARD', 'f2000002-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000011', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'SIM-BATCH-B', NULL, 'tenant-demo'),
+  ('aaaaaaaa-a0a0-0000-0000-000000000010', 'Prepaid SIM #001',               'SIM_CARD', 'f2000001-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000010', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'SIM-BATCH-A', NULL, 'tenant-demo'),
+  ('aaaaaaaa-a0a0-0000-0000-000000000011', 'Prepaid SIM #002',               'SIM_CARD', 'f2000001-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000010', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'SIM-BATCH-A', NULL, 'tenant-demo'),
+  ('aaaaaaaa-a0a0-0000-0000-000000000012', 'Prepaid Data SIM #001',          'SIM_CARD', 'f2000002-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000011', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'SIM-BATCH-B', NULL, 'tenant-demo'),
   -- Satellite STB
-  ('aaaaaaaa-res0-0000-0000-000000000020', 'HD Satellite Decoder #1',        'SET_TOP_BOX', 'f3000001-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000020', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'STB-BATCH-01', 'STB-PO-001', 'tenant-demo'),
-  ('aaaaaaaa-res0-0000-0000-000000000021', 'HD Satellite Decoder #2',        'SET_TOP_BOX', 'f3000001-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000020', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'STB-BATCH-01', 'STB-PO-001', 'tenant-demo')
+  ('aaaaaaaa-a0a0-0000-0000-000000000020', 'HD Satellite Decoder #1',        'SET_TOP_BOX', 'f3000001-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000020', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'STB-BATCH-01', 'STB-PO-001', 'tenant-demo'),
+  ('aaaaaaaa-a0a0-0000-0000-000000000021', 'HD Satellite Decoder #2',        'SET_TOP_BOX', 'f3000001-0000-0000-0000-000000000000', 'eeeeeeee-0000-0000-0000-000000000020', 'dddddddd-0000-0000-0000-000000000001', 'AVAILABLE', 'STB-BATCH-01', 'STB-PO-001', 'tenant-demo')
 ON CONFLICT (id) DO NOTHING;
 
 -- Resource characteristics
 INSERT INTO resource_characteristic (id, resource_id, name, value, tenant_id)
 VALUES
   -- iPhone 16 Pro #1
-  ('bbbbbbbb-char-0000-0000-000000000001', 'aaaaaaaa-res0-0000-0000-000000000001', 'IMEI',        '358240051111110', 'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000002', 'aaaaaaaa-res0-0000-0000-000000000001', 'COLOR',       'Black Titanium',  'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000003', 'aaaaaaaa-res0-0000-0000-000000000001', 'STORAGE_GB',  '256',             'tenant-demo'),
-  -- iPhone 16 Pro #2
-  ('bbbbbbbb-char-0000-0000-000000000004', 'aaaaaaaa-res0-0000-0000-000000000002', 'IMEI',        '358240051111111', 'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000005', 'aaaaaaaa-res0-0000-0000-000000000002', 'COLOR',       'White Titanium',  'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000006', 'aaaaaaaa-res0-0000-0000-000000000002', 'STORAGE_GB',  '256',             'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000001', 'aaaaaaaa-a0a0-0000-0000-000000000001', 'IMEI',        '358240051111110', 'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000002', 'aaaaaaaa-a0a0-0000-0000-000000000001', 'COLOR',       'Black Titanium',  'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000003', 'aaaaaaaa-a0a0-0000-0000-000000000001', 'STORAGE_GB',  '256',             'tenant-demo'),
+  -- iPhone 16 Pro #2 (IMEI and COLOR only; STORAGE_GB='256' omitted — same (name,value,tenant) as #1)
+  ('bbbbbbbb-b0b0-0000-0000-000000000004', 'aaaaaaaa-a0a0-0000-0000-000000000002', 'IMEI',        '358240051111111', 'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000005', 'aaaaaaaa-a0a0-0000-0000-000000000002', 'COLOR',       'White Titanium',  'tenant-demo'),
   -- Samsung Galaxy S25 Ultra #1
-  ('bbbbbbbb-char-0000-0000-000000000007', 'aaaaaaaa-res0-0000-0000-000000000003', 'IMEI',        '352099001761481', 'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000008', 'aaaaaaaa-res0-0000-0000-000000000003', 'COLOR',       'Titanium Silver', 'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000009', 'aaaaaaaa-res0-0000-0000-000000000003', 'STORAGE_GB',  '512',             'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000010', 'aaaaaaaa-res0-0000-0000-000000000003', 'RAM_GB',      '12',              'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000007', 'aaaaaaaa-a0a0-0000-0000-000000000003', 'IMEI',        '352099001761481', 'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000008', 'aaaaaaaa-a0a0-0000-0000-000000000003', 'COLOR',       'Titanium Silver', 'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000009', 'aaaaaaaa-a0a0-0000-0000-000000000003', 'STORAGE_GB',  '512',             'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000010', 'aaaaaaaa-a0a0-0000-0000-000000000003', 'RAM_GB',      '12',              'tenant-demo'),
   -- Prepaid SIM #001
-  ('bbbbbbbb-char-0000-0000-000000000011', 'aaaaaaaa-res0-0000-0000-000000000010', 'ICCID',       '89310410100211118510', 'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000012', 'aaaaaaaa-res0-0000-0000-000000000010', 'SIM_TYPE',    'NANO',                'tenant-demo'),
-  -- Prepaid SIM #002
-  ('bbbbbbbb-char-0000-0000-000000000013', 'aaaaaaaa-res0-0000-0000-000000000011', 'ICCID',       '89310410100211118511', 'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000014', 'aaaaaaaa-res0-0000-0000-000000000011', 'SIM_TYPE',    'NANO',                'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000011', 'aaaaaaaa-a0a0-0000-0000-000000000010', 'ICCID',       '89310410100211118510', 'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000012', 'aaaaaaaa-a0a0-0000-0000-000000000010', 'SIM_TYPE',    'NANO',                'tenant-demo'),
+  -- Prepaid SIM #002 (ICCID only; SIM_TYPE='NANO' omitted — same (name,value,tenant) as #001)
+  ('bbbbbbbb-b0b0-0000-0000-000000000013', 'aaaaaaaa-a0a0-0000-0000-000000000011', 'ICCID',       '89310410100211118511', 'tenant-demo'),
   -- Prepaid Data SIM
-  ('bbbbbbbb-char-0000-0000-000000000015', 'aaaaaaaa-res0-0000-0000-000000000012', 'ICCID',       '89310410100211118520', 'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000016', 'aaaaaaaa-res0-0000-0000-000000000012', 'SIM_TYPE',    'MICRO',               'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000017', 'aaaaaaaa-res0-0000-0000-000000000012', 'APN',         'data.telco.net',      'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000015', 'aaaaaaaa-a0a0-0000-0000-000000000012', 'ICCID',       '89310410100211118520', 'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000016', 'aaaaaaaa-a0a0-0000-0000-000000000012', 'SIM_TYPE',    'MICRO',               'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000017', 'aaaaaaaa-a0a0-0000-0000-000000000012', 'APN',         'data.telco.net',      'tenant-demo'),
   -- HD Satellite Decoder #1
-  ('bbbbbbbb-char-0000-0000-000000000018', 'aaaaaaaa-res0-0000-0000-000000000020', 'SERIAL_NUMBER',       'STB20260001A', 'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000019', 'aaaaaaaa-res0-0000-0000-000000000020', 'SMART_CARD_NUMBER',   'CA-0000000001', 'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000020', 'aaaaaaaa-res0-0000-0000-000000000020', 'MAC_ADDRESS',         '00:1A:79:AA:BB:01', 'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000018', 'aaaaaaaa-a0a0-0000-0000-000000000020', 'SERIAL_NUMBER',       'STB20260001A', 'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000019', 'aaaaaaaa-a0a0-0000-0000-000000000020', 'SMART_CARD_NUMBER',   'CA-0000000001', 'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000020', 'aaaaaaaa-a0a0-0000-0000-000000000020', 'MAC_ADDRESS',         '00:1A:79:AA:BB:01', 'tenant-demo'),
   -- HD Satellite Decoder #2
-  ('bbbbbbbb-char-0000-0000-000000000021', 'aaaaaaaa-res0-0000-0000-000000000021', 'SERIAL_NUMBER',       'STB20260002A', 'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000022', 'aaaaaaaa-res0-0000-0000-000000000021', 'SMART_CARD_NUMBER',   'CA-0000000002', 'tenant-demo'),
-  ('bbbbbbbb-char-0000-0000-000000000023', 'aaaaaaaa-res0-0000-0000-000000000021', 'MAC_ADDRESS',         '00:1A:79:AA:BB:02', 'tenant-demo')
+  ('bbbbbbbb-b0b0-0000-0000-000000000021', 'aaaaaaaa-a0a0-0000-0000-000000000021', 'SERIAL_NUMBER',       'STB20260002A', 'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000022', 'aaaaaaaa-a0a0-0000-0000-000000000021', 'SMART_CARD_NUMBER',   'CA-0000000002', 'tenant-demo'),
+  ('bbbbbbbb-b0b0-0000-0000-000000000023', 'aaaaaaaa-a0a0-0000-0000-000000000021', 'MAC_ADDRESS',         '00:1A:79:AA:BB:02', 'tenant-demo')
 ON CONFLICT (id) DO NOTHING;
 
 -- ─── Product Catalog ─────────────────────────────────────────────────────────

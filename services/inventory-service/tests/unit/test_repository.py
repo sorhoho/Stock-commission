@@ -607,7 +607,7 @@ async def test_resource_create_and_get(db_session):
     pid = uuid.uuid4()
     data = ResourceCreate(
         resource_name="Samsung A15",
-        resource_type=ResourceType.DEVICE,
+        resource_type=ResourceType.HANDSET,
         product_id=pid,
         characteristics=[ResourceCharacteristicCreate(name="IMEI", value="358240051111110")],
     )
@@ -626,12 +626,12 @@ async def test_resource_list_with_filters(db_session):
     pid = uuid.uuid4()
     await repo.create(ResourceCreate(
         resource_name="Device A",
-        resource_type=ResourceType.DEVICE,
+        resource_type=ResourceType.HANDSET,
         product_id=pid,
     ), TENANT)
     await repo.create(ResourceCreate(
         resource_name="SIM 1",
-        resource_type=ResourceType.SIM,
+        resource_type=ResourceType.SIM_CARD,
         product_id=pid,
     ), TENANT)
     await db_session.commit()
@@ -648,7 +648,7 @@ async def test_resource_characteristic_lookup(db_session):
     imei = "358240051111111"
     await repo.create(ResourceCreate(
         resource_name="Phone X",
-        resource_type=ResourceType.DEVICE,
+        resource_type=ResourceType.HANDSET,
         product_id=uuid.uuid4(),
         characteristics=[ResourceCharacteristicCreate(name="IMEI", value=imei)],
     ), TENANT)
@@ -665,7 +665,7 @@ async def test_resource_update_status(db_session):
     repo = ResourceRepository(db_session)
     created = await repo.create(ResourceCreate(
         resource_name="Device B",
-        resource_type=ResourceType.DEVICE,
+        resource_type=ResourceType.HANDSET,
         product_id=uuid.uuid4(),
     ), TENANT)
     await db_session.commit()
@@ -682,7 +682,7 @@ async def test_resource_tenant_isolation(db_session):
     repo = ResourceRepository(db_session)
     created = await repo.create(ResourceCreate(
         resource_name="Device C",
-        resource_type=ResourceType.DEVICE,
+        resource_type=ResourceType.HANDSET,
         product_id=uuid.uuid4(),
     ), TENANT)
     await db_session.commit()
