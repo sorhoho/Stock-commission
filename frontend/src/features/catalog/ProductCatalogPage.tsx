@@ -43,21 +43,41 @@ const EMPTY_FORM: ProductCreate = {
 export const ProductCatalogPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<ProductType | "">("");
   const [form, setForm] = useState<ProductCreate>(EMPTY_FORM);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: products, isLoading, isError } = useListProductsQuery({
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     product_type: typeFilter || undefined,
     size: 100,
   });
   const [createProduct, { isLoading: isCreating, isSuccess }] = useCreateProductMutation();
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearch(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedSearch(value), 300);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createProduct(form).unwrap();
-    setShowForm(false);
-    setForm(EMPTY_FORM);
+    setSubmitError(null);
+    try {
+      await createProduct({
+        ...form,
+        brand: form.brand || undefined,
+        model_number: form.model_number || undefined,
+      }).unwrap();
+      setShowForm(false);
+      setForm(EMPTY_FORM);
+    } catch (err: unknown) {
+      const msg = (err as { data?: { detail?: string } })?.data?.detail ?? "Failed to create product";
+      setSubmitError(msg);
+    }
   };
 
   const set = <K extends keyof ProductCreate>(k: K, v: ProductCreate[K]) =>
@@ -74,6 +94,7 @@ export const ProductCatalogPage: React.FC = () => {
       </div>
 
       {isSuccess && <div className="alert alert--success">Product created successfully.</div>}
+      {submitError && <div className="alert alert--error">{submitError}</div>}
 
       {showForm && (
         <div className="card" style={{ marginBottom: "1.5rem" }}>
@@ -170,7 +191,7 @@ export const ProductCatalogPage: React.FC = () => {
             className="search-input"
             placeholder="Search by name…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={handleSearchChange}
           />
           <select
             value={typeFilter}

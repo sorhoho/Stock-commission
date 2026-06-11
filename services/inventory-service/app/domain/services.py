@@ -254,6 +254,26 @@ async def adjust_stock(
     return updated_item
 
 
+async def _fetch_requires_serial_tracking(
+    product_id: str,
+    tenant_id: str,
+    catalog_url: str,
+) -> bool | None:
+    """Return requires_serial_tracking from catalog, or None if unreachable."""
+    import httpx as _httpx
+    async with _httpx.AsyncClient(timeout=3.0) as client:
+        try:
+            resp = await client.get(
+                f"{catalog_url}/api/v1/productCatalog/product/{product_id}",
+                headers={"X-Tenant-ID": tenant_id},
+            )
+            if resp.status_code == 200:
+                return resp.json().get("requires_serial_tracking")
+        except _httpx.RequestError as exc:
+            log.warning("catalog_lookup.unavailable", product_id=product_id, error=str(exc))
+    return None
+
+
 async def receive_stock(
     data: GoodsReceiptCreate,
     tenant_id: str,
@@ -261,12 +281,34 @@ async def receive_stock(
     inventory_repo: InventoryRepository,
     kafka_producer: KafkaProducer,
     correlation_id: str | None = None,
+    catalog_url: str | None = None,
+    resource_repo=None,
 ) -> object:
     """Record a goods receipt and increase inventory at the destination location.
 
     Mirrors complete_transfer(): if an inventory record already exists for this
     product + location, adjust its quantity; otherwise create a new record.
+    When catalog_url is provided and the product requires serial tracking, serial
+    numbers must be supplied and their count must match quantity_received.
     """
+    # Enforce serial tracking requirement from product catalog.
+    if catalog_url:
+        requires_serials = await _fetch_requires_serial_tracking(
+            str(data.product_id), tenant_id, catalog_url
+        )
+        if requires_serials:
+            provided = len(data.serial_numbers) if data.serial_numbers else 0
+            if provided == 0:
+                raise UnprocessableEntityException(
+                    f"Product {data.product_id} requires serial tracking: "
+                    "serial_numbers must be provided"
+                )
+            if provided != data.quantity_received:
+                raise UnprocessableEntityException(
+                    f"Product {data.product_id} requires serial tracking: "
+                    f"expected {data.quantity_received} serial numbers, got {provided}"
+                )
+
     receipt = await grn_repo.create(data, tenant_id)
 
     existing = await inventory_repo.list_with_filters(
@@ -293,6 +335,32 @@ async def receive_stock(
             status=InventoryStatus.AVAILABLE,
         )
         await inventory_repo.create(new_inv, tenant_id)
+
+    # Register individual Resource records for each serial number supplied.
+    if resource_repo is not None and data.serial_numbers:
+        from app.domain.models import ResourceCreate, ResourceCharacteristicCreate, ResourceType
+        inv_items = await inventory_repo.list_with_filters(
+            tenant_id=tenant_id,
+            product_id=data.product_id,
+            location_id=data.location_id,
+        )
+        inventory_id = inv_items[0].id if inv_items else None
+        for serial in data.serial_numbers:
+            await resource_repo.create(
+                ResourceCreate(
+                    resource_name=f"Product {data.product_id} SN:{serial}",
+                    resource_type=ResourceType.HANDSET,  # GRN caller knows type; default safe
+                    product_id=data.product_id,
+                    inventory_id=inventory_id,
+                    location_id=data.location_id,
+                    batch_reference=data.grn_number,
+                    supplier_reference=data.supplier_reference,
+                    characteristics=[
+                        ResourceCharacteristicCreate(name="SERIAL_NUMBER", value=serial)
+                    ],
+                ),
+                tenant_id,
+            )
 
     event_data = StockReceivedData(
         grn_id=str(receipt.id),

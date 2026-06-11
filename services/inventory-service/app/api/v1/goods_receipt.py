@@ -6,10 +6,11 @@ import uuid
 
 from fastapi import APIRouter, Query, status
 
+from app.config import settings
 from app.dependencies import CorrelationId, DbSession, KafkaProducerDep, TenantId
 from app.domain.models import GoodsReceipt, GoodsReceiptCreate
 from app.domain.services import receive_stock
-from app.infrastructure.db.repository import GoodsReceiptRepository, InventoryRepository
+from app.infrastructure.db.repository import GoodsReceiptRepository, InventoryRepository, ResourceRepository
 from telco_common.exceptions import NotFoundException
 
 router = APIRouter(prefix="/goodsReceipt", tags=["GoodsReceipt"])
@@ -26,6 +27,7 @@ async def create_goods_receipt(
     """Record a stock receipt (GRN) and increase inventory quantity."""
     grn_repo = GoodsReceiptRepository(db)
     inventory_repo = InventoryRepository(db)
+    resource_repo = ResourceRepository(db)
     receipt = await receive_stock(
         data=body,
         tenant_id=tenant_id,
@@ -33,6 +35,8 @@ async def create_goods_receipt(
         inventory_repo=inventory_repo,
         kafka_producer=kafka_producer,
         correlation_id=correlation_id,
+        catalog_url=settings.product_catalog_service_url,
+        resource_repo=resource_repo,
     )
     return GoodsReceipt.model_validate(receipt)
 

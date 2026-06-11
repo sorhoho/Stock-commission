@@ -219,8 +219,10 @@ class ResourceCharacteristic(Base, UUIDMixin, TenantMixin):
     """TMF 639 ResourceCharacteristic — IMEI, ICCID, serial number, etc."""
 
     __tablename__ = "resource_characteristic"
+    # One characteristic name per resource; identity values (IMEI, ICCID …) are
+    # globally unique per tenant via a partial index in the migration.
     __table_args__ = (
-        UniqueConstraint("name", "value", "tenant_id", name="uq_resource_characteristic_nvt"),
+        UniqueConstraint("resource_id", "name", name="uq_resource_characteristic_resource_name"),
     )
 
     resource_id: Mapped[uuid.UUID] = mapped_column(

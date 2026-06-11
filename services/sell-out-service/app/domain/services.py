@@ -27,6 +27,25 @@ from telco_common.exceptions import ConflictException, NotFoundException, Unproc
 log = structlog.get_logger(__name__)
 
 
+async def _fetch_commission_eligible(
+    product_id: str,
+    tenant_id: str,
+    catalog_url: str,
+) -> bool | None:
+    """Return catalog commission_eligible flag, or None if catalog unreachable."""
+    async with httpx.AsyncClient(timeout=3.0) as client:
+        try:
+            resp = await client.get(
+                f"{catalog_url}/api/v1/productCatalog/product/{product_id}",
+                headers={"X-Tenant-ID": tenant_id},
+            )
+            if resp.status_code == 200:
+                return resp.json().get("commission_eligible")
+        except httpx.RequestError as exc:
+            log.warning("catalog_lookup.unavailable", product_id=product_id, error=str(exc))
+    return None
+
+
 async def _check_stock_availability(
     items: list,
     tenant_id: str,
@@ -66,6 +85,7 @@ async def create_sale_transaction(
     repo: SaleTransactionRepository,
     kafka_producer,
     stock_query_url: str | None = None,
+    catalog_url: str | None = None,
 ) -> SaleTransaction:
     """
     Create a new sell-out transaction.
@@ -82,6 +102,16 @@ async def create_sale_transaction(
     # 1. Stock availability check
     if stock_query_url:
         await _check_stock_availability(data.items, tenant_id, stock_query_url)
+
+    # 1b. Stamp commission_eligible from catalog (authoritative source).
+    # Fail open: if catalog is unreachable use whatever the caller sent.
+    if catalog_url:
+        for item in data.items:
+            eligible = await _fetch_commission_eligible(
+                str(item.product_id), tenant_id, catalog_url
+            )
+            if eligible is not None:
+                item.commission_eligible = eligible
 
     # 2. Calculate total amount
     total_amount = sum(

@@ -70,6 +70,7 @@ async def create_transaction(
         repo=repo,
         kafka_producer=kafka_producer,
         stock_query_url=settings.stock_query_service_url,
+        catalog_url=settings.product_catalog_service_url,
     )
 
 

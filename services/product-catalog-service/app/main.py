@@ -12,7 +12,6 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import settings
 from app.infrastructure.db.session import engine
-from telco_common.db.base import Base
 from telco_common.middleware.correlation_middleware import CorrelationMiddleware
 from telco_common.middleware.tenant_middleware import TenantMiddleware
 
@@ -21,9 +20,9 @@ log = structlog.get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    # Schema is managed by Alembic migrations (cat001 and onwards).
+    # create_all is intentionally absent — running both causes 'relation already exists'.
     log.info("Starting product-catalog-service")
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     yield
     await engine.dispose()
     log.info("product-catalog-service stopped")

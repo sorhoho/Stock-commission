@@ -34,5 +34,8 @@ class Settings(BaseSettings):
     # CORS
     allowed_origins: list[str] = ["*"]
 
+    # Product catalog lookup for requires_serial_tracking enforcement
+    product_catalog_service_url: str = "http://product-catalog-service:8011"
+
 
 settings = Settings()

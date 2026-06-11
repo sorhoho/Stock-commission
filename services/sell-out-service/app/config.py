@@ -38,5 +38,8 @@ class Settings(BaseSettings):
     # Stock availability check before sale
     stock_query_service_url: str = "http://stock-query-service:8004"
 
+    # Product catalog lookup for commission_eligible enforcement
+    product_catalog_service_url: str = "http://product-catalog-service:8011"
+
 
 settings = Settings()

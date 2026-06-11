@@ -178,6 +178,10 @@ class GoodsReceiptCreate(BaseModel):
     unit_cost: float | None = None
     received_by: str
     received_date: datetime
+    # Serial numbers (IMEI / ICCID / SN) for products that require serial tracking.
+    # Must have exactly quantity_received entries when the catalog flags
+    # requires_serial_tracking=True.
+    serial_numbers: list[str] | None = None
 
 
 # ---------------------------------------------------------------------------
