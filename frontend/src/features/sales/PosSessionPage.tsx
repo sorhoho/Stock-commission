@@ -104,7 +104,7 @@ export const PosSessionPage: React.FC = () => {
               </div>
               <div className="stat">
                 <span className="stat-label">Total Amount</span>
-                <span className="stat-value">{session.total_amount.toFixed(2)} USD</span>
+                <span className="stat-value">{session.total_amount.toFixed(2)} THB</span>
               </div>
               <div className="stat">
                 <span className="stat-label">Opening Cash</span>

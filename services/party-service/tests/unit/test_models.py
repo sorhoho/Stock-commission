@@ -248,7 +248,7 @@ def test_party_characteristic_create_missing_party_id_raises():
 def test_party_account_create_defaults():
     model = PartyAccountCreate(party_id=uuid.uuid4(), account_type="PREPAID")
     assert model.balance == 0.0
-    assert model.currency == "USD"
+    assert model.currency == "THB"
 
 
 def test_party_account_read_model():

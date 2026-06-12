@@ -230,7 +230,7 @@ class TestGetSaleTransactionEndpoint:
         assert data["id"] == str(sample_transaction.id)
         assert data["channel"] == "RETAIL"
         assert data["total_amount"] == 50.00
-        assert data["currency"] == "USD"
+        assert data["currency"] == "THB"
 
     @pytest.mark.asyncio
     async def test_get_nonexistent_transaction_returns_404(self, test_client):

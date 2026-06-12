@@ -142,7 +142,7 @@ export const SellOutPOS: React.FC<Props> = ({ dealerPartyId }) => {
           <button type="button" onClick={() => setItems((prev) => [...prev, emptyItem()])}>
             + Add Item
           </button>
-          <span className="total">Total: {totalAmount.toFixed(2)} USD</span>
+          <span className="total">Total: {totalAmount.toFixed(2)} THB</span>
           <button type="submit" disabled={isLoading} className="btn-primary">
             {isLoading ? "Processing..." : "Record Sale"}
           </button>

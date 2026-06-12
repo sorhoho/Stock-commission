@@ -104,7 +104,7 @@ class PartyAccount(BaseModel):
     party_id: uuid.UUID
     account_type: str
     balance: float = 0.0
-    currency: str = "USD"
+    currency: str = "THB"
     last_updated: datetime
 
     model_config = {"from_attributes": True}
@@ -114,4 +114,4 @@ class PartyAccountCreate(BaseModel):
     party_id: uuid.UUID
     account_type: str
     balance: float = 0.0
-    currency: str = "USD"
+    currency: str = "THB"

@@ -25,7 +25,7 @@ export const PayoutPage: React.FC = () => {
         <h2>Payout Requests</h2>
         {total > 0 && (
           <div className="stat-pill">
-            Pending: <strong>{total.toFixed(2)} USD</strong>
+            Pending: <strong>{total.toFixed(2)} THB</strong>
           </div>
         )}
       </div>

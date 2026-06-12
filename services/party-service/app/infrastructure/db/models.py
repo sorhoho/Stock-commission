@@ -90,7 +90,7 @@ class PartyAccount(Base, UUIDMixin, TenantMixin):
     )
     account_type: Mapped[str] = mapped_column(String(100), nullable=False)
     balance: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    currency: Mapped[str] = mapped_column(String(10), nullable=False, default="USD")
+    currency: Mapped[str] = mapped_column(String(10), nullable=False, default="THB")
     last_updated: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )

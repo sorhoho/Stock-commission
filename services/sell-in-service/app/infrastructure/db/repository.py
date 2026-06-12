@@ -74,7 +74,7 @@ class ProductOrderRepository:
             supplier_party_id=data.supplier_party_id,
             state=OrderState.ACKNOWLEDGED,
             total_amount=total,
-            currency="USD",
+            currency="THB",
             requested_delivery_date=data.requested_delivery_date,
             notes=data.notes,
             tenant_id=tenant_id,

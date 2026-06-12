@@ -25,7 +25,7 @@ def _event(**overrides) -> dict:
         "period_year": 2026,
         "period_month": 5,
         "total_commission": 543.21,
-        "currency": "USD",
+        "currency": "THB",
         "confirmed_at": "2026-05-15T10:00:00+00:00",
         "tenant_id": "tenant-test-001",
     }
@@ -48,7 +48,7 @@ async def test_confirmed_statement_creates_payout(repo, mock_kafka_producer):
     assert str(orm.party_id) == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
     assert str(orm.statement_id) == "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
     assert orm.amount == 543.21
-    assert orm.currency == "USD"
+    assert orm.currency == "THB"
     assert orm.payment_method == "BANK_TRANSFER"
     assert orm.status == "PENDING"
     # scheduled to the 28th of the statement period.

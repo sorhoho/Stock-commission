@@ -244,8 +244,8 @@ export const ProductCatalogPage: React.FC = () => {
                   <td className="text-mono">{p.barcode || "—"}</td>
                   <td>
                     {p.denomination != null
-                      ? <span title="Face value">${p.denomination.toFixed(2)}</span>
-                      : `$${p.unit_price.toFixed(2)}`}
+                      ? <span title="Face value">฿{p.denomination.toFixed(2)}</span>
+                      : `฿${p.unit_price.toFixed(2)}`}
                   </td>
                   <td>
                     <span className={p.commission_eligible ? "badge-paid" : "badge-default"}>

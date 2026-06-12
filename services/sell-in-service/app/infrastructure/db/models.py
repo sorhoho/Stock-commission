@@ -28,7 +28,7 @@ class ProductOrderDB(Base, UUIDMixin, TenantMixin, TimestampMixin):
         String(32), nullable=False, default="ACKNOWLEDGED", index=True
     )
     total_amount: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="USD")
+    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="THB")
     requested_delivery_date: Mapped[date] = mapped_column(Date, nullable=False)
     actual_delivery_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -84,7 +84,7 @@ class CommissionRule(BaseModel):
     tier_max_qty: int | None = None
     commission_type: CommissionType
     commission_value: float
-    currency: str = "USD"
+    currency: str = "THB"
     conditions: dict[str, Any] = {}
     priority: int = 100
     tenant_id: str
@@ -98,7 +98,7 @@ class CommissionRuleCreate(BaseModel):
     tier_max_qty: int | None = None
     commission_type: CommissionType
     commission_value: float
-    currency: str = "USD"
+    currency: str = "THB"
     conditions: dict[str, Any] = {}
     priority: int = 100
     tenant_id: str

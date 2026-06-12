@@ -43,7 +43,7 @@ class CommissionRule(Base, UUIDMixin, TenantMixin):
     tier_max_qty: Mapped[int | None] = mapped_column(Integer)
     commission_type: Mapped[str] = mapped_column(String(20), nullable=False)
     commission_value: Mapped[float] = mapped_column(Float, nullable=False)
-    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="THB")
     conditions: Mapped[dict] = mapped_column(JSONB, default=dict)
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
     is_deleted: Mapped[bool] = mapped_column(default=False)

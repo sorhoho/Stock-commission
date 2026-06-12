@@ -41,7 +41,7 @@ class PayoutRequestCreate(BaseModel):
     party_id: UUID
     statement_id: UUID
     amount: float
-    currency: str = "USD"
+    currency: str = "THB"
     payment_method: PaymentMethod = PaymentMethod.BANK_TRANSFER
     bank_account_ref: str
     scheduled_date: date

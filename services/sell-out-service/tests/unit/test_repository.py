@@ -101,7 +101,7 @@ async def test_create_returns_transaction_with_id(repo, sample_tenant_id, dealer
     assert txn.transaction_number == "TXN-001"
     assert txn.tenant_id == sample_tenant_id
     assert txn.status == SaleStatus.COMPLETED
-    assert txn.currency == "USD"
+    assert txn.currency == "THB"
     assert txn.total_amount == 45.0
 
 
@@ -314,7 +314,7 @@ async def test_get_summary_counts_transactions(repo, sample_tenant_id, dealer_id
     assert summary.total_transactions == 2
     assert summary.total_amount == pytest.approx(120.0)
     assert summary.dealer_party_id == dealer_id
-    assert summary.currency == "USD"
+    assert summary.currency == "THB"
 
 
 async def test_get_summary_sums_units(repo, sample_tenant_id, dealer_id):

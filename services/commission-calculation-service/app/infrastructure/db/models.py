@@ -40,7 +40,7 @@ class CommissionEvent(UUIDMixin, TimestampMixin, TenantMixin, Base):
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     base_amount: Mapped[float] = mapped_column(Float, nullable=False)
     commission_amount: Mapped[float] = mapped_column(Float, nullable=False)
-    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="USD")
+    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="THB")
     calculation_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
@@ -67,7 +67,7 @@ class CommissionStatement(UUIDMixin, TimestampMixin, TenantMixin, Base):
     period_year: Mapped[int] = mapped_column(Integer, nullable=False)
     period_month: Mapped[int] = mapped_column(Integer, nullable=False)
     total_commission: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="USD")
+    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="THB")
     line_items_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[str] = mapped_column(
         String(32), nullable=False, default="DRAFT", index=True

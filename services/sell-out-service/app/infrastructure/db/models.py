@@ -33,7 +33,7 @@ class SaleTransaction(UUIDMixin, TimestampMixin, TenantMixin, Base):
     )
     channel: Mapped[str] = mapped_column(String(32), nullable=False)
     total_amount: Mapped[float] = mapped_column(Float, nullable=False)
-    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="USD")
+    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="THB")
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     pos_session_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     payment_method: Mapped[str | None] = mapped_column(String(32), nullable=True)

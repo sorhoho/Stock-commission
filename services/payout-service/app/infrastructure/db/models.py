@@ -16,7 +16,7 @@ class PayoutRequest(Base, UUIDMixin, TimestampMixin, TenantMixin):
     party_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     statement_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     amount: Mapped[float] = mapped_column(Float, nullable=False)
-    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="THB")
     payment_method: Mapped[str] = mapped_column(String(20), nullable=False, default="BANK_TRANSFER")
     bank_account_ref: Mapped[str] = mapped_column(String(200), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDING")

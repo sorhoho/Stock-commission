@@ -158,7 +158,7 @@ async def handle_payout_completed(event_data: dict[str, Any]) -> None:
 
     party_id = event_data.get("party_id", "unknown")
     amount = event_data.get("amount", 0)
-    currency = event_data.get("currency", "USD")
+    currency = event_data.get("currency", "THB")
     external_ref = event_data.get("external_reference", "N/A")
     processed_at = event_data.get("processed_at", "")
     email = event_data.get("email")
@@ -207,7 +207,7 @@ async def handle_commission_statement_confirmed(event_data: dict[str, Any]) -> N
     period_year = event_data.get("period_year", "")
     period_month = event_data.get("period_month", "")
     total_commission = event_data.get("total_commission", 0)
-    currency = event_data.get("currency", "USD")
+    currency = event_data.get("currency", "THB")
     email = event_data.get("email")
     tenant_id = event_data.get("tenant_id", "")
 

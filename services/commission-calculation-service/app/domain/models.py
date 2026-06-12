@@ -47,7 +47,7 @@ class CommissionStatement(BaseModel):
     period_year: int
     period_month: int
     total_commission: float
-    currency: str = "USD"
+    currency: str = "THB"
     line_items_count: int
     status: CommissionStatementStatus
     confirmed_at: datetime | None

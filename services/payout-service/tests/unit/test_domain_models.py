@@ -38,7 +38,7 @@ def test_payout_request_create_defaults():
         scheduled_date=date(2026, 1, 28),
         tenant_id="tenant-1",
     )
-    assert model.currency == "USD"
+    assert model.currency == "THB"
     assert model.payment_method == PaymentMethod.BANK_TRANSFER
 
 

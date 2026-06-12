@@ -82,7 +82,7 @@ class SaleTransactionRepository:
             customer_party_id=transaction_data.customer_party_id,
             channel=transaction_data.channel.value,
             total_amount=total_amount,
-            currency="USD",
+            currency="THB",
             status=SaleStatus.COMPLETED.value,
             pos_session_id=transaction_data.pos_session_id,
             payment_method=transaction_data.payment_method.value if transaction_data.payment_method else None,
@@ -249,7 +249,7 @@ class SaleTransactionRepository:
             total_transactions=total_transactions,
             total_units=total_units,
             total_amount=round(total_amount, 2),
-            currency="USD",
+            currency="THB",
         )
 
 

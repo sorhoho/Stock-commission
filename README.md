@@ -1,6 +1,6 @@
-# Telco Distribution & Commission System
+# True Corporation — Distribution & Commission System
 
-Production-ready, TMForum-compliant microservices platform for the end-to-end management of telco distribution, retail POS, warehouse operations, and dealer commission. 573 unit tests across 13 services.
+Production-ready, TMForum-compliant microservices platform for True Corporation (Thailand), covering end-to-end telco distribution, retail POS, warehouse operations, and dealer commission. All monetary values in THB (VAT 7%); demo data covers TrueMove H SIMs and refill cards, TrueVisions set-top boxes, TrueID TV boxes, True Gigatex fiber CPE, True IoT/CCTV, and flagship handsets. 573 unit tests across 13 services.
 
 ## Architecture Overview
 

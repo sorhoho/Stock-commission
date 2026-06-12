@@ -24,7 +24,7 @@ export const Layout: React.FC = () => {
     <div className={`app-layout ${collapsed ? "app-layout--collapsed" : ""}`}>
       <aside className="sidebar">
         <div className="sidebar-header">
-          <span className="sidebar-logo">Telco DMS</span>
+          <span className="sidebar-logo">True DMS</span>
           <button className="sidebar-toggle" onClick={() => setCollapsed((c) => !c)}>
             {collapsed ? "▶" : "◀"}
           </button>

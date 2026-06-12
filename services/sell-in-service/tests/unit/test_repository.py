@@ -55,7 +55,7 @@ async def test_create_persists_order_and_computes_total(repo, sample_tenant_id, 
     assert order.id is not None
     assert order.order_number.startswith("SLI-")
     assert order.state is OrderState.ACKNOWLEDGED
-    assert order.currency == "USD"
+    assert order.currency == "THB"
     assert order.total_amount == pytest.approx(3 * 10.0 + 2 * 5.5)
     assert order.tenant_id == sample_tenant_id
     assert len(order.items) == 2

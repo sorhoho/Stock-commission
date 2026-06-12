@@ -95,7 +95,7 @@ async def handle_sell_out_completed(
                     tier_max_qty=r.get("tier_max_qty"),
                     commission_type=CommissionType(r["commission_type"]),
                     commission_value=float(r["commission_value"]),
-                    currency=r.get("currency", "USD"),
+                    currency=r.get("currency", "THB"),
                     priority=r.get("priority", 100),
                 ))
             except (KeyError, ValueError):

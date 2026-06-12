@@ -80,7 +80,7 @@ class SaleTransaction(BaseModel):
     channel: SaleChannel
     items: list[SaleTransactionItem]
     total_amount: float
-    currency: str = "USD"
+    currency: str = "THB"
     status: SaleStatus
     pos_session_id: uuid.UUID | None = None
     payment_method: str | None = None
@@ -103,7 +103,7 @@ class SaleTransactionSummary(BaseModel):
     total_transactions: int
     total_units: int
     total_amount: float
-    currency: str = "USD"
+    currency: str = "THB"
 
 
 # ---------------------------------------------------------------------------
