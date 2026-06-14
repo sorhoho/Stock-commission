@@ -56,6 +56,7 @@ def _to_pydantic(db_order: orm.ProductOrderDB) -> ProductOrder:
         requested_delivery_date=db_order.requested_delivery_date,
         actual_delivery_date=db_order.actual_delivery_date,
         notes=db_order.notes,
+        destination_location_id=db_order.destination_location_id,
         tenant_id=db_order.tenant_id,
         created_at=db_order.created_at,
         updated_at=db_order.updated_at,
@@ -77,6 +78,7 @@ class ProductOrderRepository:
             currency="THB",
             requested_delivery_date=data.requested_delivery_date,
             notes=data.notes,
+            destination_location_id=data.destination_location_id,
             tenant_id=tenant_id,
         )
         self._session.add(db_order)

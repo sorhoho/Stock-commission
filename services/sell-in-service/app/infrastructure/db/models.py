@@ -32,6 +32,9 @@ class ProductOrderDB(Base, UUIDMixin, TenantMixin, TimestampMixin):
     requested_delivery_date: Mapped[date] = mapped_column(Date, nullable=False)
     actual_delivery_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    destination_location_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
 
     items: Mapped[list["ProductOrderItemDB"]] = relationship(
         "ProductOrderItemDB",

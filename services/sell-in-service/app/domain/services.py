@@ -104,7 +104,7 @@ async def complete_order(
             }
             for item in updated.items
         ],
-        destination_location_id=str(updated.requestor_party_id),
+        destination_location_id=str(updated.destination_location_id or updated.requestor_party_id),
         tenant_id=tenant_id,
     )
     event = make_event(

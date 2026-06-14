@@ -44,6 +44,7 @@ class ProductOrderCreate(BaseModel):
     items: list[ProductOrderItemCreate] = Field(min_length=1)
     requested_delivery_date: date
     notes: str | None = None
+    destination_location_id: uuid.UUID | None = None
 
 
 class ProductOrderUpdate(BaseModel):
@@ -65,6 +66,7 @@ class ProductOrder(BaseModel):
     requested_delivery_date: date
     actual_delivery_date: date | None
     notes: str | None
+    destination_location_id: uuid.UUID | None
     tenant_id: str
     created_at: datetime
     updated_at: datetime

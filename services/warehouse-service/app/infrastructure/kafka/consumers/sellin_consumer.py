@@ -40,7 +40,7 @@ async def _handle_sellin_delivered(
             }
             try:
                 resp = await client.post(
-                    f"{inventory_service_url}/api/v1/goodsReceipt",
+                    f"{inventory_service_url}/api/v1/goodsReceipt/",
                     json=payload,
                     headers={"X-Tenant-ID": tenant_id, "X-Correlation-ID": event.get("correlationid", "")},
                 )
