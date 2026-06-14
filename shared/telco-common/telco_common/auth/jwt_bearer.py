@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Annotated, Any
 
 import httpx
@@ -14,6 +15,9 @@ from telco_common.exceptions import UnauthorizedException
 
 _bearer = HTTPBearer(auto_error=False)
 _jwks_cache: dict[str, Any] = {}
+
+# When SKIP_AUTH=true, bypass JWT validation (dev/QA only — never set in production).
+_SKIP_AUTH = os.getenv("SKIP_AUTH", "").lower() in ("true", "1", "yes")
 
 
 class TokenPayload(BaseModel):
@@ -44,6 +48,14 @@ def require_auth(required_scopes: list[str] | None = None):
         from telco_common.config import CommonSettings
 
         settings = CommonSettings()  # type: ignore[call-arg]
+
+        if _SKIP_AUTH:
+            tenant_id = request.headers.get("X-Tenant-ID", "tenant-demo")
+            return TokenPayload(
+                sub="dev-user",
+                tenant_id=tenant_id,
+                preferred_username="dev-user",
+            )
 
         if credentials is None:
             raise UnauthorizedException("Missing Authorization header")

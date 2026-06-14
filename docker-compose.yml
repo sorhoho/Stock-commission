@@ -14,6 +14,7 @@ x-service-defaults: &service-defaults
     KEYCLOAK_AUDIENCE: "telco-services"
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://tempo:4317"
     LOG_LEVEL: "INFO"
+    SKIP_AUTH: "true"
 
 services:
   # ─── Infrastructure ───────────────────────────────────────────────────────
@@ -114,6 +115,7 @@ services:
     environment:
       DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/inventory"
       SERVICE_NAME: "inventory-service"
+      SKIP_AUTH: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -129,6 +131,7 @@ services:
     environment:
       DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/party"
       SERVICE_NAME: "party-service"
+      SKIP_AUTH: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -144,6 +147,7 @@ services:
     environment:
       DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/sellout"
       SERVICE_NAME: "sell-out-service"
+      SKIP_AUTH: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -159,6 +163,7 @@ services:
     environment:
       DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/sellin"
       SERVICE_NAME: "sell-in-service"
+      SKIP_AUTH: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -173,6 +178,7 @@ services:
     ports: ["8005:8000"]
     environment:
       SERVICE_NAME: "stock-query-service"
+      SKIP_AUTH: "true"
     depends_on:
       redis:
         condition: service_healthy
@@ -188,6 +194,7 @@ services:
     environment:
       DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/performance"
       SERVICE_NAME: "performance-service"
+      SKIP_AUTH: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -203,6 +210,7 @@ services:
     environment:
       DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/commission_rules"
       SERVICE_NAME: "commission-rules-service"
+      SKIP_AUTH: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -217,6 +225,7 @@ services:
       DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/commission_calc"
       COMMISSION_RULES_SERVICE_URL: "http://commission-rules-service:8000"
       SERVICE_NAME: "commission-calculation-service"
+      SKIP_AUTH: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -234,6 +243,7 @@ services:
     environment:
       DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/payout"
       SERVICE_NAME: "payout-service"
+      SKIP_AUTH: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -248,6 +258,7 @@ services:
     ports: ["8010:8000"]
     environment:
       SERVICE_NAME: "notification-service"
+      SKIP_AUTH: "true"
     depends_on:
       kafka:
         condition: service_healthy
@@ -261,6 +272,7 @@ services:
     environment:
       DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/audit"
       SERVICE_NAME: "audit-service"
+      SKIP_AUTH: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -276,6 +288,7 @@ services:
     environment:
       DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/warehouse"
       SERVICE_NAME: "warehouse-service"
+      SKIP_AUTH: "true"
       INVENTORY_SERVICE_URL: "http://inventory-service:8000"
     depends_on:
       postgres:
@@ -294,6 +307,7 @@ services:
     environment:
       DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/product_catalog"
       SERVICE_NAME: "product-catalog-service"
+      SKIP_AUTH: "true"
     depends_on:
       postgres:
         condition: service_healthy

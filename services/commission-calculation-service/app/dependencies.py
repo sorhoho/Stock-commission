@@ -15,3 +15,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         except Exception:
             await session.rollback()
             raise
+
+
+def get_kafka_producer():
+    from app.infrastructure.kafka.consumer_runner import _producer
+    return _producer

@@ -68,37 +68,37 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Stock-on-hand at Bang Na DC (product IDs match product_catalog seed below)
-INSERT INTO product_inventory (id, product_id, product_name, location_id, location_type, quantity, status, tenant_id)
+INSERT INTO product_inventory (id, product_id, product_name, location_id, location_type, quantity, quantity_uom, status, tenant_id)
 VALUES
   -- Handsets
-  ('eeeeeeee-0000-0000-0000-000000000001', 'f1000001-0000-0000-0000-000000000000', 'Apple iPhone 16 Pro 256GB Black Titanium',     'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 50,    'AVAILABLE', 'tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000002', 'f1000002-0000-0000-0000-000000000000', 'Samsung Galaxy S25 Ultra 512GB Titanium Silver','dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 80,    'AVAILABLE', 'tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000003', 'f1000003-0000-0000-0000-000000000000', 'OPPO Find X8 256GB Space Black',               'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 120,   'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000001', 'f1000001-0000-0000-0000-000000000000', 'Apple iPhone 16 Pro 256GB Black Titanium',     'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 50,    'EACH', 'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000002', 'f1000002-0000-0000-0000-000000000000', 'Samsung Galaxy S25 Ultra 512GB Titanium Silver','dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 80,    'EACH', 'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000003', 'f1000003-0000-0000-0000-000000000000', 'OPPO Find X8 256GB Space Black',               'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 120,   'EACH', 'AVAILABLE', 'tenant-demo'),
   -- SIM cards
-  ('eeeeeeee-0000-0000-0000-000000000010', 'f2000001-0000-0000-0000-000000000000', 'TrueMove H Prepaid SIM Starter Pack',          'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 5000,  'AVAILABLE', 'tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000011', 'f2000002-0000-0000-0000-000000000000', 'TrueMove H Tourist SIM 15GB / 8 Days',         'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 3000,  'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000010', 'f2000001-0000-0000-0000-000000000000', 'TrueMove H Prepaid SIM Starter Pack',          'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 5000,  'EACH', 'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000011', 'f2000002-0000-0000-0000-000000000000', 'TrueMove H Tourist SIM 15GB / 8 Days',         'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 3000,  'EACH', 'AVAILABLE', 'tenant-demo'),
   -- Set-top boxes
-  ('eeeeeeee-0000-0000-0000-000000000020', 'f3000001-0000-0000-0000-000000000000', 'TrueVisions HD Set-Top Box',                   'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 200,   'AVAILABLE', 'tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000021', 'f3000002-0000-0000-0000-000000000000', 'TrueVisions 4K UHD Set-Top Box',               'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 150,   'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000020', 'f3000001-0000-0000-0000-000000000000', 'TrueVisions HD Set-Top Box',                   'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 200,   'EACH', 'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000021', 'f3000002-0000-0000-0000-000000000000', 'TrueVisions 4K UHD Set-Top Box',               'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 150,   'EACH', 'AVAILABLE', 'tenant-demo'),
   -- OTT TV boxes
-  ('eeeeeeee-0000-0000-0000-000000000025', 'f4000001-0000-0000-0000-000000000000', 'TrueID TV Box Gen 2 (4K)',                     'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 300,   'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000025', 'f4000001-0000-0000-0000-000000000000', 'TrueID TV Box Gen 2 (4K)',                     'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 300,   'EACH', 'AVAILABLE', 'tenant-demo'),
   -- Cash / refill cards
-  ('eeeeeeee-0000-0000-0000-000000000030', 'f5000001-0000-0000-0000-000000000000', 'TrueMove H Refill Card 50 THB',                'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 10000, 'AVAILABLE', 'tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000031', 'f5000002-0000-0000-0000-000000000000', 'TrueMove H Refill Card 100 THB',               'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 5000,  'AVAILABLE', 'tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000032', 'f5000003-0000-0000-0000-000000000000', 'TrueMove H Refill Card 300 THB',               'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 2000,  'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000030', 'f5000001-0000-0000-0000-000000000000', 'TrueMove H Refill Card 50 THB',                'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 10000, 'EACH', 'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000031', 'f5000002-0000-0000-0000-000000000000', 'TrueMove H Refill Card 100 THB',               'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 5000,  'EACH', 'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000032', 'f5000003-0000-0000-0000-000000000000', 'TrueMove H Refill Card 300 THB',               'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 2000,  'EACH', 'AVAILABLE', 'tenant-demo'),
   -- Mobile broadband / Pocket WiFi
-  ('eeeeeeee-0000-0000-0000-000000000040', 'f6000001-0000-0000-0000-000000000000', 'True 5G Pocket WiFi',                          'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 80,    'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000040', 'f6000001-0000-0000-0000-000000000000', 'True 5G Pocket WiFi',                          'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 80,    'EACH', 'AVAILABLE', 'tenant-demo'),
   -- CCTV
-  ('eeeeeeee-0000-0000-0000-000000000050', 'f7000001-0000-0000-0000-000000000000', 'True CCTV Outdoor 4MP PoE Camera',             'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 60,    'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000050', 'f7000001-0000-0000-0000-000000000000', 'True CCTV Outdoor 4MP PoE Camera',             'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 60,    'EACH', 'AVAILABLE', 'tenant-demo'),
   -- IoT
-  ('eeeeeeee-0000-0000-0000-000000000060', 'f8000001-0000-0000-0000-000000000000', 'True IoT Smart Energy Meter (NB-IoT)',         'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 200,   'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000060', 'f8000001-0000-0000-0000-000000000000', 'True IoT Smart Energy Meter (NB-IoT)',         'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 200,   'EACH', 'AVAILABLE', 'tenant-demo'),
   -- Fixed CPE / router
-  ('eeeeeeee-0000-0000-0000-000000000070', 'f9000001-0000-0000-0000-000000000000', 'True Gigatex Fiber ONT (WiFi 6)',              'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 100,   'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000070', 'f9000001-0000-0000-0000-000000000000', 'True Gigatex Fiber ONT (WiFi 6)',              'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 100,   'EACH', 'AVAILABLE', 'tenant-demo'),
   -- Tablet
-  ('eeeeeeee-0000-0000-0000-000000000080', 'fa000001-0000-0000-0000-000000000000', 'Samsung Galaxy Tab S9 128GB WiFi',             'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 40,    'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000080', 'fa000001-0000-0000-0000-000000000000', 'Samsung Galaxy Tab S9 128GB WiFi',             'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 40,    'EACH', 'AVAILABLE', 'tenant-demo'),
   -- Accessories
-  ('eeeeeeee-0000-0000-0000-000000000090', 'fb000001-0000-0000-0000-000000000000', 'GaN Charger 65W USB-C',                        'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 500,   'AVAILABLE', 'tenant-demo'),
-  ('eeeeeeee-0000-0000-0000-000000000091', 'fb000002-0000-0000-0000-000000000000', 'Universal Phone Case (6.5")',                  'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 300,   'AVAILABLE', 'tenant-demo')
+  ('eeeeeeee-0000-0000-0000-000000000090', 'fb000001-0000-0000-0000-000000000000', 'GaN Charger 65W USB-C',                        'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 500,   'EACH', 'AVAILABLE', 'tenant-demo'),
+  ('eeeeeeee-0000-0000-0000-000000000091', 'fb000002-0000-0000-0000-000000000000', 'Universal Phone Case (6.5")',                  'dddddddd-0000-0000-0000-000000000001', 'WAREHOUSE', 300,   'EACH', 'AVAILABLE', 'tenant-demo')
 ON CONFLICT (id) DO NOTHING;
 
 -- Sample serialised resources: 3 handsets with IMEI, 3 SIM cards with ICCID, 2 STBs

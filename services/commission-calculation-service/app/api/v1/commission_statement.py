@@ -7,11 +7,13 @@ from uuid import UUID
 from fastapi import APIRouter, Body, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db
+from app.dependencies import get_db, get_kafka_producer
 from app.domain.models import CommissionStatement, CommissionStatementStatus
 from app.infrastructure.db.repository import CommissionStatementRepository
 from telco_common.auth import require_auth
 from telco_common.auth.scopes import Scopes
+from telco_common.events import Topics, make_event
+from telco_common.events.schemas import CommissionStatementConfirmedData
 from telco_common.exceptions import ConflictException, NotFoundException
 
 router = APIRouter(prefix="/commissionStatement", tags=["Commission Statements"])
@@ -53,6 +55,7 @@ async def confirm_statement(
     statement_id: UUID,
     db: AsyncSession = Depends(get_db),
     token=Depends(require_auth([Scopes.COMMISSION_STATEMENT_CONFIRM])),
+    producer=Depends(get_kafka_producer),
 ):
     repo = CommissionStatementRepository(db)
     item = await repo.get_by_id(statement_id, token.tenant_id)
@@ -60,7 +63,26 @@ async def confirm_statement(
         raise NotFoundException("CommissionStatement", str(statement_id))
     if item.status != CommissionStatementStatus.DRAFT:
         raise ConflictException(f"Statement {statement_id} is already {item.status}")
-    confirmed = await repo.confirm(str(statement_id))
+    confirmed = await repo.confirm(str(statement_id), token.tenant_id)
+    if producer is not None:
+        event_data = CommissionStatementConfirmedData(
+            statement_id=str(confirmed.id),
+            party_id=str(confirmed.party_id),
+            period_year=confirmed.period_year,
+            period_month=confirmed.period_month,
+            total_commission=confirmed.total_commission,
+            currency=confirmed.currency,
+            confirmed_at=confirmed.confirmed_at.isoformat() if confirmed.confirmed_at else "",
+            tenant_id=confirmed.tenant_id,
+        )
+        event = make_event(
+            Topics.COMMISSION_STATEMENT_CONFIRMED,
+            "commission-calculation-service",
+            confirmed.tenant_id,
+            event_data,
+            None,
+        )
+        await producer.send(Topics.COMMISSION_STATEMENT_CONFIRMED, event, key=str(confirmed.party_id))
     return CommissionStatement.model_validate(confirmed)
 
 

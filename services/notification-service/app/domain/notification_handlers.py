@@ -118,11 +118,12 @@ async def handle_dealer_onboarded(event_data: dict[str, Any]) -> None:
     """
     log.info("Handling dealer_onboarded notification", event_data=event_data)
 
-    party_id = event_data.get("party_id", "unknown")
-    name = event_data.get("name", "Dealer")
-    email = event_data.get("email")  # may not be in base schema — best-effort
-    phone = event_data.get("phone")
-    tenant_id = event_data.get("tenant_id", "")
+    data = event_data.get("data", event_data)
+    party_id = data.get("party_id", "unknown")
+    name = data.get("name", "Dealer")
+    email = data.get("email")
+    phone = data.get("phone")
+    tenant_id = data.get("tenant_id", "")
 
     notification = NotificationEvent(
         party_id=party_id,
@@ -156,14 +157,15 @@ async def handle_payout_completed(event_data: dict[str, Any]) -> None:
     """
     log.info("Handling payout_completed notification", event_data=event_data)
 
-    party_id = event_data.get("party_id", "unknown")
-    amount = event_data.get("amount", 0)
-    currency = event_data.get("currency", "THB")
-    external_ref = event_data.get("external_reference", "N/A")
-    processed_at = event_data.get("processed_at", "")
-    email = event_data.get("email")
-    phone = event_data.get("phone")
-    tenant_id = event_data.get("tenant_id", "")
+    data = event_data.get("data", event_data)
+    party_id = data.get("party_id", "unknown")
+    amount = data.get("amount", 0)
+    currency = data.get("currency", "THB")
+    external_ref = data.get("external_reference", "N/A")
+    processed_at = data.get("processed_at", "")
+    email = data.get("email")
+    phone = data.get("phone")
+    tenant_id = data.get("tenant_id", "")
 
     notification = NotificationEvent(
         party_id=party_id,
@@ -202,14 +204,15 @@ async def handle_commission_statement_confirmed(event_data: dict[str, Any]) -> N
     """
     log.info("Handling commission_statement_confirmed notification", event_data=event_data)
 
-    party_id = event_data.get("party_id", "unknown")
-    statement_id = event_data.get("statement_id", "")
-    period_year = event_data.get("period_year", "")
-    period_month = event_data.get("period_month", "")
-    total_commission = event_data.get("total_commission", 0)
-    currency = event_data.get("currency", "THB")
-    email = event_data.get("email")
-    tenant_id = event_data.get("tenant_id", "")
+    data = event_data.get("data", event_data)
+    party_id = data.get("party_id", "unknown")
+    statement_id = data.get("statement_id", "")
+    period_year = data.get("period_year", 0)
+    period_month = data.get("period_month", 0)
+    total_commission = data.get("total_commission", 0)
+    currency = data.get("currency", "THB")
+    email = data.get("email")
+    tenant_id = data.get("tenant_id", "")
 
     notification = NotificationEvent(
         party_id=party_id,
@@ -246,15 +249,14 @@ async def handle_stock_transfer_completed(event_data: dict[str, Any]) -> None:
     """
     log.info("Handling stock_transfer_completed notification", event_data=event_data)
 
-    transfer_id = event_data.get("transfer_id", "unknown")
-    transfer_order_number = event_data.get("transfer_order_number", "unknown")
-    product_id = event_data.get("product_id", "")
-    destination_location_id = event_data.get("destination_location_id", "")
-    quantity = event_data.get("quantity", 0)
-    tenant_id = event_data.get("tenant_id", "")
-    # In real usage, the receiving location manager's contact details would be
-    # looked up from the party-service. Here we log a mock notification.
-    recipient_email = event_data.get("destination_contact_email")
+    data = event_data.get("data", event_data)
+    transfer_id = data.get("transfer_id", "unknown")
+    transfer_order_number = data.get("transfer_order_number", "unknown")
+    product_id = data.get("product_id", "")
+    destination_location_id = data.get("destination_location_id", "")
+    quantity = data.get("quantity", 0)
+    tenant_id = data.get("tenant_id", "")
+    recipient_email = data.get("destination_contact_email")
 
     notification = NotificationEvent(
         party_id=destination_location_id or "system",

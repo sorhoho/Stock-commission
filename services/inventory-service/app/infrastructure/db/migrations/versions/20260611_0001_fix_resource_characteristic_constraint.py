@@ -26,15 +26,24 @@ _IDENTITY_NAMES = "('IMEI','ICCID','SERIAL_NUMBER','SMART_CARD_NUMBER','MAC_ADDR
 
 
 def upgrade() -> None:
-    op.drop_constraint(
-        "uq_resource_characteristic_nvt",
-        "resource_characteristic",
-        type_="unique",
+    # The old constraint may not exist if the table was created by create_all
+    # with the already-updated ORM model — guard with IF EXISTS.
+    op.execute(
+        "ALTER TABLE resource_characteristic "
+        "DROP CONSTRAINT IF EXISTS uq_resource_characteristic_nvt"
+    )
+    # The new constraint may already exist if create_all ran first.
+    op.execute(
+        "ALTER TABLE resource_characteristic "
+        "DROP CONSTRAINT IF EXISTS uq_resource_characteristic_resource_name"
     )
     op.create_unique_constraint(
         "uq_resource_characteristic_resource_name",
         "resource_characteristic",
         ["resource_id", "name"],
+    )
+    op.execute(
+        f"DROP INDEX IF EXISTS uix_resource_characteristic_identity_value"
     )
     op.execute(
         f"CREATE UNIQUE INDEX uix_resource_characteristic_identity_value "
