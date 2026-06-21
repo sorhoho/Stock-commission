@@ -8,7 +8,6 @@ from typing import AsyncGenerator
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import settings
 from app.infrastructure.db.session import engine
@@ -47,11 +46,6 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(TenantMiddleware)
     app.add_middleware(CorrelationMiddleware)
-
-    Instrumentator(
-        should_group_status_codes=True,
-        excluded_handlers=["/health", "/metrics"],
-    ).instrument(app).expose(app, endpoint="/metrics")
 
     from app.api.v1.router import router as v1_router
     app.include_router(v1_router)

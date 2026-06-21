@@ -162,6 +162,17 @@ class CommissionEventRepository:
         items = result.scalars().all()
         return [_event_to_domain(ev) for ev in items], total
 
+    async def list_by_source_transaction(
+        self, source_transaction_id: str, tenant_id: str
+    ) -> list[CommissionEvent]:
+        result = await self._session.execute(
+            select(db_models.CommissionEvent).where(
+                db_models.CommissionEvent.source_transaction_id == source_transaction_id,
+                db_models.CommissionEvent.tenant_id == tenant_id,
+            )
+        )
+        return [_event_to_domain(ev) for ev in result.scalars().all()]
+
     async def update_status(
         self,
         event_id: uuid.UUID,

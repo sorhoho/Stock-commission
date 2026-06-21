@@ -1,0 +1,36 @@
+apiVersion: oda.tmforum.org/v1beta3
+kind: component
+metadata:
+  name: product-ordering-management
+  labels:
+    oda.tmforum.org/componentName: product-ordering-management
+spec:
+  type: Product Ordering Management
+  version: "1.0.0"
+  description: "Manages inbound product orders from principals/manufacturers into the distribution network, covering order placement and delivery confirmation."
+  maintainers:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  owners:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  coreFunction:
+    exposedAPIs:
+      - name: TMF622-ProductOrdering
+        specification: "https://tmforum.org/oda/open-api/TMF622"
+        implementation: "/api/v1/productOrder"
+        path: "/api/v1/productOrder"
+        port: 8010
+        required: true
+        resources: []
+    dependentAPIs: []
+  eventNotification:
+    publishedEvents:
+      - name: telco.sales.sellin.ordered
+        href: "https://tmforum.org/oda/notification/telco.sales.sellin.ordered"
+      - name: telco.sales.sellin.delivered
+        href: "https://tmforum.org/oda/notification/telco.sales.sellin.delivered"
+    subscribedEvents: []
+  management: []
+  security:
+    controllerRole: "PLATFORM"

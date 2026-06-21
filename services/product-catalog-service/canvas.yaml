@@ -1,0 +1,32 @@
+apiVersion: oda.tmforum.org/v1beta3
+kind: component
+metadata:
+  name: product-catalog-management
+  labels:
+    oda.tmforum.org/componentName: product-catalog-management
+spec:
+  type: Product Catalog Management
+  version: "1.0.0"
+  description: "Manages the product catalog including product offerings, specifications, and pricing available across the telco distribution network."
+  maintainers:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  owners:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  coreFunction:
+    exposedAPIs:
+      - name: TMF620-ProductCatalog
+        specification: "https://tmforum.org/oda/open-api/TMF620"
+        implementation: "/api/v1/productCatalog"
+        path: "/api/v1/productCatalog"
+        port: 8011
+        required: true
+        resources: []
+    dependentAPIs: []
+  eventNotification:
+    publishedEvents: []
+    subscribedEvents: []
+  management: []
+  security:
+    controllerRole: "PLATFORM"

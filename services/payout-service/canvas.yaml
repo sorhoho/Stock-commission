@@ -1,0 +1,38 @@
+apiVersion: oda.tmforum.org/v1beta3
+kind: component
+metadata:
+  name: payment-management
+  labels:
+    oda.tmforum.org/componentName: payment-management
+spec:
+  type: Payment Management
+  version: "1.0.0"
+  description: "Manages dealer commission payout requests and disbursements, triggered by confirmed commission statements."
+  maintainers:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  owners:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  coreFunction:
+    exposedAPIs:
+      - name: TMF666-AccountFinance
+        specification: "https://tmforum.org/oda/open-api/TMF666"
+        implementation: "/api/v1/payout"
+        path: "/api/v1/payout"
+        port: 8008
+        required: true
+        resources: []
+    dependentAPIs: []
+  eventNotification:
+    publishedEvents:
+      - name: telco.payout.request.created
+        href: "https://tmforum.org/oda/notification/telco.payout.request.created"
+      - name: telco.payout.request.completed
+        href: "https://tmforum.org/oda/notification/telco.payout.request.completed"
+    subscribedEvents:
+      - name: telco.commission.statement.confirmed
+        href: "https://tmforum.org/oda/notification/telco.commission.statement.confirmed"
+  management: []
+  security:
+    controllerRole: "PLATFORM"

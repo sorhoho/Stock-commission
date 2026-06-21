@@ -1,0 +1,49 @@
+apiVersion: oda.tmforum.org/v1beta3
+kind: component
+metadata:
+  name: product-inventory-management
+  labels:
+    oda.tmforum.org/componentName: product-inventory-management
+spec:
+  type: Product Inventory Management
+  version: "1.0.0"
+  description: "Manages product and resource inventory across the distribution network, including stock transfers, receipts, adjustments, and resource allocation."
+  maintainers:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  owners:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  coreFunction:
+    exposedAPIs:
+      - name: TMF637-ProductInventory
+        specification: "https://tmforum.org/oda/open-api/TMF637"
+        implementation: "/api/v1/inventory"
+        path: "/api/v1/inventory"
+        port: 8001
+        required: true
+        resources: []
+      - name: TMF639-ResourceInventory
+        specification: "https://tmforum.org/oda/open-api/TMF639"
+        implementation: "/api/v1/resourceInventory"
+        path: "/api/v1/resourceInventory"
+        port: 8001
+        required: true
+        resources: []
+    dependentAPIs: []
+  eventNotification:
+    publishedEvents:
+      - name: telco.inventory.stock.transferred
+        href: "https://tmforum.org/oda/notification/telco.inventory.stock.transferred"
+      - name: telco.inventory.stock.received
+        href: "https://tmforum.org/oda/notification/telco.inventory.stock.received"
+      - name: telco.inventory.stock.adjusted
+        href: "https://tmforum.org/oda/notification/telco.inventory.stock.adjusted"
+      - name: telco.inventory.resource.allocated
+        href: "https://tmforum.org/oda/notification/telco.inventory.resource.allocated"
+    subscribedEvents:
+      - name: telco.sales.sellout.completed
+        href: "https://tmforum.org/oda/notification/telco.sales.sellout.completed"
+  management: []
+  security:
+    controllerRole: "PLATFORM"

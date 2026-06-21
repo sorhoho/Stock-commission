@@ -1,0 +1,40 @@
+apiVersion: oda.tmforum.org/v1beta3
+kind: component
+metadata:
+  name: account-commission-management
+  labels:
+    oda.tmforum.org/componentName: account-commission-management
+spec:
+  type: Account and Finance Management
+  version: "1.0.0"
+  description: "Calculates and manages dealer commission events and statements based on completed sell-out transactions and applicable agreement rules."
+  maintainers:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  owners:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  coreFunction:
+    exposedAPIs:
+      - name: TMF666-AccountManagement
+        specification: "https://tmforum.org/oda/open-api/TMF666"
+        implementation: "/api/v1/accountManagement"
+        path: "/api/v1/accountManagement"
+        port: 8007
+        required: true
+        resources: []
+    dependentAPIs: []
+  eventNotification:
+    publishedEvents:
+      - name: telco.commission.event.calculated
+        href: "https://tmforum.org/oda/notification/telco.commission.event.calculated"
+      - name: telco.commission.statement.confirmed
+        href: "https://tmforum.org/oda/notification/telco.commission.statement.confirmed"
+    subscribedEvents:
+      - name: telco.sales.sellout.completed
+        href: "https://tmforum.org/oda/notification/telco.sales.sellout.completed"
+      - name: telco.sales.return.processed
+        href: "https://tmforum.org/oda/notification/telco.sales.return.processed"
+  management: []
+  security:
+    controllerRole: "PLATFORM"

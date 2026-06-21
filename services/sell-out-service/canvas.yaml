@@ -1,0 +1,38 @@
+apiVersion: oda.tmforum.org/v1beta3
+kind: component
+metadata:
+  name: sales-management
+  labels:
+    oda.tmforum.org/componentName: sales-management
+spec:
+  type: Sales Management
+  version: "1.0.0"
+  description: "Manages outbound sales transactions from dealers to end customers, including sell-out recording, reversals, and returns processing."
+  maintainers:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  owners:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  coreFunction:
+    exposedAPIs:
+      - name: TMF699-SalesManagement
+        specification: "https://tmforum.org/oda/open-api/TMF699"
+        implementation: "/api/v1/salesManagement"
+        path: "/api/v1/salesManagement"
+        port: 8003
+        required: true
+        resources: []
+    dependentAPIs: []
+  eventNotification:
+    publishedEvents:
+      - name: telco.sales.sellout.completed
+        href: "https://tmforum.org/oda/notification/telco.sales.sellout.completed"
+      - name: telco.sales.sellout.reversed
+        href: "https://tmforum.org/oda/notification/telco.sales.sellout.reversed"
+      - name: telco.sales.return.processed
+        href: "https://tmforum.org/oda/notification/telco.sales.return.processed"
+    subscribedEvents: []
+  management: []
+  security:
+    controllerRole: "PLATFORM"

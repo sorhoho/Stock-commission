@@ -1,0 +1,34 @@
+apiVersion: oda.tmforum.org/v1beta3
+kind: component
+metadata:
+  name: agreement-management
+  labels:
+    oda.tmforum.org/componentName: agreement-management
+spec:
+  type: Agreement Management
+  version: "1.0.0"
+  description: "Manages commission agreement rules and terms between the telco distributor and dealer parties, including automatic binding of default agreements on dealer onboarding."
+  maintainers:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  owners:
+    - name: "Telco Distribution Platform"
+      email: "platform@example.com"
+  coreFunction:
+    exposedAPIs:
+      - name: TMF651-AgreementManagement
+        specification: "https://tmforum.org/oda/open-api/TMF651"
+        implementation: "/api/v1/agreementManagement"
+        path: "/api/v1/agreementManagement"
+        port: 8006
+        required: true
+        resources: []
+    dependentAPIs: []
+  eventNotification:
+    publishedEvents: []
+    subscribedEvents:
+      - name: telco.party.dealer.onboarded
+        href: "https://tmforum.org/oda/notification/telco.party.dealer.onboarded"
+  management: []
+  security:
+    controllerRole: "PLATFORM"
